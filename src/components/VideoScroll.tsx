@@ -26,9 +26,9 @@ export default function VideoScroll() {
     <div className="bg-[#1B2E4B] py-20 px-4 flex flex-col items-center gap-8">
       <div className="text-center text-white">
         <h2 className="text-3xl md:text-5xl font-bold mb-3">
-          As� de f�cil es <span className="text-[#2ECC8F]">fichar</span>
+          Así de fácil es <span className="text-[#2ECC8F]">fichar</span>
         </h2>
-        <p className="text-gray-300 text-lg">Tus empleados fichan en segundos desde el m�vil</p>
+        <p className="text-gray-300 text-lg">Tus empleados fichan en segundos desde el móvil</p>
       </div>
       {videoOk ? (
         <video
@@ -42,7 +42,7 @@ export default function VideoScroll() {
         />
       ) : (
         <div className="w-full max-w-2xl h-72 rounded-2xl bg-white/10 flex items-center justify-center">
-          <p className="text-gray-400 text-sm">V�deo no disponible</p>
+          <p className="text-gray-400 text-sm">Vídeo no disponible</p>
         </div>
       )}
     </div>

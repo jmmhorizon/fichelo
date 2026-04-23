@@ -165,6 +165,12 @@ function DashboardContent() {
   const [direccion, setDireccion] = useState("");
   const [buscando, setBuscando] = useState(false);
   const [resultadoBusqueda, setResultadoBusqueda] = useState<{ lat: number; lng: number; display: string } | null>(null);
+  const [modalAusencia, setModalAusencia] = useState(false);
+  const [ausenciaEmpleado, setAusenciaEmpleado] = useState("");
+  const [ausenciaTipo, setAusenciaTipo] = useState("vacaciones");
+  const [ausenciaDesde, setAusenciaDesde] = useState("");
+  const [ausenciaHasta, setAusenciaHasta] = useState("");
+  const [ausencias, setAusencias] = useState<{ empleado: string; tipo: string; desde: string; hasta: string }[]>([]);
   const router = useRouter();
   const searchParams = useSearchParams();
   const demoParam = searchParams.get("demo");
@@ -521,28 +527,103 @@ function DashboardContent() {
                   <h3 className="font-bold text-[#1B2E4B]">Vacaciones y ausencias</h3>
                 </div>
                 {!esDemo && (
-                  <button className="flex items-center gap-1 text-sm bg-[#2ECC8F] hover:bg-[#25a872] text-white px-4 py-2 rounded-full font-semibold">
+                  <button
+                    onClick={() => { setAusenciaEmpleado(empresa?.empleados?.[0] ?? ""); setAusenciaDesde(""); setAusenciaHasta(""); setModalAusencia(true); }}
+                    className="flex items-center gap-1 text-sm bg-[#2ECC8F] hover:bg-[#25a872] text-white px-4 py-2 rounded-full font-semibold transition-colors"
+                  >
                     <Plus size={14} /> Nueva ausencia
                   </button>
                 )}
               </div>
               <div className="divide-y divide-gray-50">
-                {empresa?.empleados?.slice(0, 3).map((e, i) => (
+                {ausencias.length === 0 && (empresa?.empleados ?? []).length === 0 && (
+                  <p className="text-gray-400 text-sm text-center py-8">No hay empleados registrados aún.</p>
+                )}
+                {ausencias.length === 0 && (empresa?.empleados ?? []).length > 0 && (
+                  <p className="text-gray-400 text-sm text-center py-8">No hay ausencias registradas. Pulsa &quot;Nueva ausencia&quot; para añadir.</p>
+                )}
+                {ausencias.map((a, i) => (
                   <div key={i} className="flex items-center justify-between px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-[#1B2E4B]/10 rounded-full flex items-center justify-center font-bold text-xs text-[#1B2E4B]">
-                        {String(e).charAt(0)}
+                        {a.empleado.charAt(0).toUpperCase()}
                       </div>
-                      <p className="font-medium text-[#1B2E4B] text-sm">{e}</p>
+                      <p className="font-medium text-[#1B2E4B] text-sm">{a.empleado}</p>
                     </div>
-                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${i === 1 ? "bg-orange-50 text-orange-400" : "bg-[#2ECC8F]/10 text-[#2ECC8F]"}`}>
-                      {i === 1 ? "Vacaciones 1-15 may" : "Sin ausencias"}
+                    <span className="text-xs px-3 py-1 rounded-full font-medium bg-orange-50 text-orange-400">
+                      {a.tipo.charAt(0).toUpperCase() + a.tipo.slice(1)} {a.desde} – {a.hasta}
                     </span>
                   </div>
                 ))}
               </div>
             </div>
             {plan === "pro" && <UpsellBanner tipo="logo" />}
+          </div>
+        )}
+
+        {/* MODAL NUEVA AUSENCIA */}
+        {modalAusencia && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+              <h3 className="text-lg font-bold text-[#1B2E4B] mb-6">Nueva ausencia</h3>
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Empleado</label>
+                  <select
+                    value={ausenciaEmpleado}
+                    onChange={(e) => setAusenciaEmpleado(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F]"
+                  >
+                    {(empresa?.empleados ?? []).map((emp) => (
+                      <option key={emp} value={emp}>{emp}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Tipo</label>
+                  <select
+                    value={ausenciaTipo}
+                    onChange={(e) => setAusenciaTipo(e.target.value)}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F]"
+                  >
+                    <option value="vacaciones">Vacaciones</option>
+                    <option value="baja">Baja médica</option>
+                    <option value="ausencia">Ausencia justificada</option>
+                    <option value="permiso">Permiso personal</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Desde</label>
+                    <input type="date" value={ausenciaDesde} onChange={(e) => setAusenciaDesde(e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Hasta</label>
+                    <input type="date" value={ausenciaHasta} onChange={(e) => setAusenciaHasta(e.target.value)}
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F]" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setModalAusencia(false)}
+                  className="flex-1 border border-gray-200 text-gray-500 py-3 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    if (!ausenciaEmpleado || !ausenciaDesde || !ausenciaHasta) return;
+                    setAusencias((prev) => [...prev, { empleado: ausenciaEmpleado, tipo: ausenciaTipo, desde: ausenciaDesde, hasta: ausenciaHasta }]);
+                    setModalAusencia(false);
+                  }}
+                  className="flex-1 bg-[#2ECC8F] hover:bg-[#25a872] text-white py-3 rounded-xl font-bold text-sm transition-colors"
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

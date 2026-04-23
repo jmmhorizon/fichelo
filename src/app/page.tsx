@@ -20,26 +20,26 @@ export default function Home() {
             <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6">
               Tus empleados fichan.
               <br />
-              <span className="text-[#2ECC8F]">T� lo controlas.</span>
+              <span className="text-[#2ECC8F]">Tú lo controlas.</span>
             </h1>
             <p className="text-gray-300 text-lg mb-8 leading-relaxed">
-              Fichaje GPS verificado en tiempo real. Detecta si un empleado no ha fichado y recibe un aviso inmediato por email. Sin enga�os, sin papel.
+              Fichaje GPS verificado en tiempo real. Detecta si un empleado no ha fichado y recibe un aviso inmediato por email. Sin engaños, sin papel.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link href="/registro" className="bg-[#2ECC8F] hover:bg-[#25a872] text-white px-8 py-4 rounded-full font-bold text-lg transition-colors text-center">
-                Prueba gratis 7 d�as
+                Prueba gratis 7 días
               </Link>
               <Link href="#funciones" className="border-2 border-white/30 hover:border-white text-white px-8 py-4 rounded-full font-semibold text-lg transition-colors text-center">
-                Ver c�mo funciona
+                Ver cómo funciona
               </Link>
             </div>
-            <p className="text-gray-400 text-sm mt-4">Sin tarjeta de cr�dito � Cancela cuando quieras</p>
+            <p className="text-gray-400 text-sm mt-4">Sin tarjeta de crédito · Cancela cuando quieras</p>
           </div>
 
           <div className="flex justify-center">
             <Image
               src="/mockup.png"
-              alt="App Fichelo en m�vil"
+              alt="App Fichelo en móvil"
               width={400}
               height={500}
               className="w-full max-w-sm drop-shadow-2xl"
@@ -54,7 +54,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 grid grid-cols-3 gap-8 text-center">
           <div>
             <p className="text-4xl font-extrabold text-[#2ECC8F]">+500</p>
-            <p className="text-gray-500 text-sm mt-1">Empresas conf�an en nosotros</p>
+            <p className="text-gray-500 text-sm mt-1">Empresas confían en nosotros</p>
           </div>
           <div>
             <p className="text-4xl font-extrabold text-[#2ECC8F]">99,9%</p>
@@ -62,7 +62,7 @@ export default function Home() {
           </div>
           <div>
             <p className="text-4xl font-extrabold text-[#2ECC8F]">3 seg</p>
-            <p className="text-gray-500 text-sm mt-1">Para fichar desde el m�vil</p>
+            <p className="text-gray-500 text-sm mt-1">Para fichar desde el móvil</p>
           </div>
         </div>
       </section>
@@ -83,31 +83,31 @@ export default function Home() {
               {
                 icon: <MapPin size={28} className="text-[#2ECC8F]" />,
                 titulo: "GPS verificado",
-                texto: "El sistema comprueba que el empleado est� en el lugar de trabajo antes de registrar el fichaje. Sin trampas.",
+                texto: "El sistema comprueba que el empleado está en el lugar de trabajo antes de registrar el fichaje. Sin trampas.",
               },
               {
                 icon: <Clock size={28} className="text-[#2ECC8F]" />,
                 titulo: "Tiempo real",
-                texto: "Ve en tu panel qui�n ha fichado, a qu� hora y desde d�nde. Actualizaci�n instant�nea.",
+                texto: "Ve en tu panel quién ha fichado, a qué hora y desde dónde. Actualización instantánea.",
               },
               {
                 icon: <Mail size={28} className="text-[#2ECC8F]" />,
                 titulo: "Avisos por email",
-                texto: "Si un empleado no ficha a su hora, recibes un aviso autom�tico en tu correo sin hacer nada.",
+                texto: "Si un empleado no ficha a su hora, recibes un aviso automático en tu correo sin hacer nada.",
               },
               {
                 icon: <Shield size={28} className="text-[#2ECC8F]" />,
                 titulo: "Cumplimiento legal",
-                texto: "Cumple con la obligaci�n de registro horario del Real Decreto-ley 8/2019. Historial exportable.",
+                texto: "Cumple con la obligación de registro horario del Real Decreto-ley 8/2019. Historial exportable.",
               },
               {
                 icon: <BarChart2 size={28} className="text-[#2ECC8F]" />,
-                titulo: "Informes autom�ticos",
+                titulo: "Informes automáticos",
                 texto: "Genera informes mensuales por empleado en PDF o Excel con un solo clic.",
               },
               {
                 icon: <Users size={28} className="text-[#2ECC8F]" />,
-                titulo: "Gesti�n de equipos",
+                titulo: "Gestión de equipos",
                 texto: "Organiza empleados por equipos o sedes. Gestiona vacaciones y ausencias desde el panel.",
               },
             ].map((f) => (
@@ -131,7 +131,7 @@ export default function Home() {
         <div className="max-w-2xl mx-auto px-4">
           <h2 className="text-4xl font-bold mb-4">Empieza hoy mismo</h2>
           <p className="text-gray-300 text-lg mb-8">
-            7 d�as gratis, sin compromisos. Configura tu empresa en menos de 5 minutos.
+            7 días gratis, sin compromisos. Configura tu empresa en menos de 5 minutos.
           </p>
           <Link href="/registro" className="bg-[#2ECC8F] hover:bg-[#25a872] text-white px-10 py-4 rounded-full font-bold text-lg transition-colors inline-block">
             Crear cuenta gratis
@@ -143,10 +143,10 @@ export default function Home() {
       <footer className="bg-gray-900 text-gray-400 py-10">
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
           <Image src="/logo.png" alt="Fichelo" width={100} height={32} className="h-8 w-auto brightness-200" />
-          <p className="text-sm">� 2026 Fichelo.es � Todos los derechos reservados</p>
+          <p className="text-sm">© 2026 Fichelo.es · Todos los derechos reservados</p>
           <div className="flex gap-6 text-sm">
             <Link href="/privacidad" className="hover:text-white transition-colors">Privacidad</Link>
-            <Link href="/terminos" className="hover:text-white transition-colors">T�rminos</Link>
+            <Link href="/terminos" className="hover:text-white transition-colors">Términos</Link>
             <Link href="/contacto" className="hover:text-white transition-colors">Contacto</Link>
           </div>
         </div>
