@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -47,18 +47,32 @@ export default function EmpleadosPage() {
     if (totalEmpleados >= limite) { setError(`Has alcanzado el límite de ${limite} empleados de tu plan.`); return; }
     setLoading(true); setError(""); setEnviado(false);
     try {
+      const token = crypto.randomUUID();
+      const expira = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      // Escribe la invitación en Firestore desde el cliente (autenticado)
+      await setDoc(doc(db, "invitaciones", token), {
+        empresaId: uid,
+        empresaNombre: empresa?.nombre || "",
+        nombreEmpleado: nombre,
+        emailEmpleado: email,
+        expira,
+        usado: false,
+      });
+
+      // La API solo envía el email
       const res = await fetch("/api/invitar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ empresaId: uid, nombreEmpleado: nombre, emailEmpleado: email }),
+        body: JSON.stringify({ empresaNombre: empresa?.nombre || "", nombreEmpleado: nombre, emailEmpleado: email, token }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setEnviado(true);
-      setLinkCopiado(`${window.location.origin}/unirse/${data.token}`);
+      setLinkCopiado(`${window.location.origin}/unirse/${token}`);
       setNombre(""); setEmail("");
-    } catch {
-      setError("Error al enviar la invitación. Inténtalo de nuevo.");
+    } catch (err) {
+      setError("Error al enviar la invitación: " + (err instanceof Error ? err.message : "inténtalo de nuevo."));
     } finally { setLoading(false); }
   };
 
