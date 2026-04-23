@@ -23,6 +23,7 @@ interface Empresa {
   activo: boolean;
   lat?: number;
   lng?: number;
+  direccion?: string;
 }
 
 const PLANES: Record<string, { label: string; limite: number; precio: string; priceId: string }> = {
@@ -162,7 +163,9 @@ function DashboardContent() {
   const [tab, setTab] = useState<"hoy" | "historial" | "empleados" | "informes" | "vacaciones" | "configuracion">("hoy");
   const [historial, setHistorial] = useState<Fichaje[]>([]);
   const [esDemo, setEsDemo] = useState(false);
-  const [loadingUbicacion, setLoadingUbicacion] = useState(false);
+  const [direccion, setDireccion] = useState("");
+  const [buscando, setBuscando] = useState(false);
+  const [resultadoBusqueda, setResultadoBusqueda] = useState<{ lat: number; lng: number; display: string } | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const demoParam = searchParams.get("demo");
@@ -217,24 +220,36 @@ function DashboardContent() {
   const formatHora  = (ts: Timestamp) => ts.toDate().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
   const formatFecha = (ts: Timestamp) => ts.toDate().toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
 
-  const guardarUbicacion = () => {
-    if (!navigator.geolocation) { alert("Tu dispositivo no soporta geolocalización."); return; }
-    setLoadingUbicacion(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude: lat, longitude: lng } = pos.coords;
-        const uid = auth.currentUser?.uid;
-        if (!uid) return;
-        await updateDoc(doc(db, "empresas", uid), { lat, lng });
-        setEmpresa((prev) => prev ? { ...prev, lat, lng } : prev);
-        setLoadingUbicacion(false);
-      },
-      () => {
-        alert("No se pudo obtener la ubicación. Activa el GPS e inténtalo de nuevo.");
-        setLoadingUbicacion(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+  const buscarDireccion = async () => {
+    if (!direccion.trim()) return;
+    setBuscando(true);
+    setResultadoBusqueda(null);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(direccion)}&format=json&limit=1`,
+        { headers: { "User-Agent": "Fichelo/1.0 (fichelo.es)" } }
+      );
+      const data = await res.json();
+      if (data.length > 0) {
+        setResultadoBusqueda({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), display: data[0].display_name });
+      } else {
+        alert("No se encontró esa dirección. Añade la ciudad o el código postal.");
+      }
+    } catch {
+      alert("Error al buscar la dirección. Comprueba tu conexión.");
+    } finally {
+      setBuscando(false);
+    }
+  };
+
+  const guardarDireccion = async () => {
+    if (!resultadoBusqueda) return;
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    const { lat, lng } = resultadoBusqueda;
+    await updateDoc(doc(db, "empresas", uid), { lat, lng, direccion });
+    setEmpresa((prev) => prev ? { ...prev, lat, lng, direccion } : prev);
+    setResultadoBusqueda(null);
   };
 
   const exportarCSV = () => {
@@ -536,21 +551,25 @@ function DashboardContent() {
               Define dónde está tu empresa. Los empleados solo podrán fichar dentro de un radio de 200 metros.
             </p>
 
-            {empresa?.lat && empresa?.lng ? (
+            {/* Dirección actual guardada */}
+            {empresa?.lat && empresa?.lng && (
               <div className="bg-[#2ECC8F]/10 border border-[#2ECC8F]/30 rounded-xl p-4 mb-6 flex items-center gap-3">
                 <MapPin size={20} className="text-[#2ECC8F] shrink-0" />
                 <div>
-                  <p className="font-semibold text-[#1B2E4B] text-sm">Ubicación configurada ✓</p>
+                  <p className="font-semibold text-[#1B2E4B] text-sm">
+                    {empresa.direccion || "Ubicación configurada"} ✓
+                  </p>
                   <a
                     href={`https://www.google.com/maps?q=${empresa.lat},${empresa.lng}`}
                     target="_blank" rel="noopener noreferrer"
                     className="text-xs text-gray-500 hover:text-[#2ECC8F] transition-colors"
                   >
-                    {empresa.lat.toFixed(5)}, {empresa.lng.toFixed(5)} · Ver en Maps
+                    Ver en Google Maps · radio 200 m
                   </a>
                 </div>
               </div>
-            ) : (
+            )}
+            {!empresa?.lat && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-center gap-3">
                 <MapPin size={20} className="text-amber-500 shrink-0" />
                 <p className="text-amber-700 text-sm font-medium">
@@ -559,17 +578,51 @@ function DashboardContent() {
               </div>
             )}
 
-            <button
-              onClick={guardarUbicacion}
-              disabled={loadingUbicacion}
-              className="flex items-center gap-2 bg-[#2ECC8F] hover:bg-[#25a872] text-white px-6 py-3 rounded-xl font-bold text-sm transition-colors disabled:opacity-60"
-            >
-              <Navigation size={16} />
-              {loadingUbicacion ? "Obteniendo ubicación GPS..." : empresa?.lat ? "Actualizar ubicación" : "Usar mi ubicación actual (GPS)"}
-            </button>
-            <p className="text-xs text-gray-400 mt-3">
-              Abre esta página desde la dirección de tu empresa para obtener las coordenadas correctas.
+            {/* Buscador de dirección */}
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={direccion}
+                onChange={(e) => setDireccion(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && buscarDireccion()}
+                placeholder="Calle Gran Vía 25, Madrid"
+                className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F] transition-colors"
+              />
+              <button
+                onClick={buscarDireccion}
+                disabled={buscando || !direccion.trim()}
+                className="flex items-center gap-2 bg-[#1B2E4B] hover:bg-[#243d62] text-white px-5 py-3 rounded-xl font-bold text-sm transition-colors disabled:opacity-50"
+              >
+                <Navigation size={15} />
+                {buscando ? "Buscando..." : "Buscar"}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-5">
+              Incluye la ciudad para mayor precisión. Ej: «Calle Alcalá 10, Madrid»
             </p>
+
+            {/* Resultado de la búsqueda */}
+            {resultadoBusqueda && (
+              <div className="border-2 border-[#2ECC8F] rounded-xl p-4 mb-4">
+                <p className="text-xs text-gray-500 mb-1">Dirección encontrada:</p>
+                <p className="text-sm font-medium text-[#1B2E4B] mb-3 leading-snug">{resultadoBusqueda.display}</p>
+                <div className="flex gap-3">
+                  <a
+                    href={`https://www.google.com/maps?q=${resultadoBusqueda.lat},${resultadoBusqueda.lng}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="text-xs text-gray-400 hover:text-[#2ECC8F] underline"
+                  >
+                    Verificar en Maps
+                  </a>
+                  <button
+                    onClick={guardarDireccion}
+                    className="ml-auto flex items-center gap-2 bg-[#2ECC8F] hover:bg-[#25a872] text-white px-5 py-2 rounded-xl font-bold text-sm transition-colors"
+                  >
+                    ✓ Guardar esta ubicación
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
