@@ -50,7 +50,6 @@ export default function EmpleadosPage() {
       const token = crypto.randomUUID();
       const expira = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-      // Escribe la invitación en Firestore desde el cliente (autenticado)
       await setDoc(doc(db, "invitaciones", token), {
         empresaId: uid,
         empresaNombre: empresa?.nombre || "",
@@ -60,19 +59,20 @@ export default function EmpleadosPage() {
         usado: false,
       });
 
-      // La API solo envía el email
-      const res = await fetch("/api/invitar", {
+      // Mostrar el link inmediatamente — el email es opcional
+      const link = `${window.location.origin}/unirse/${token}`;
+      setEnviado(true);
+      setLinkCopiado(link);
+      setNombre(""); setEmail("");
+
+      // Intentar enviar email sin bloquear (best-effort)
+      fetch("/api/invitar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ empresaNombre: empresa?.nombre || "", nombreEmpleado: nombre, emailEmpleado: email, token }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setEnviado(true);
-      setLinkCopiado(`${window.location.origin}/unirse/${token}`);
-      setNombre(""); setEmail("");
+      }).catch(() => {}); // si falla el email, el link ya está visible
     } catch (err) {
-      setError("Error al enviar la invitación: " + (err instanceof Error ? err.message : "inténtalo de nuevo."));
+      setError("Error al crear la invitación: " + (err instanceof Error ? err.message : "inténtalo de nuevo."));
     } finally { setLoading(false); }
   };
 

@@ -436,9 +436,14 @@ function DashboardContent() {
                 Empleados ({empresa?.empleados?.length || 0}/{planInfo.limite === 9999 ? "∞" : planInfo.limite})
               </h2>
               {!esDemo && (
-                <Link href="/dashboard/empleados" className="flex items-center gap-1 text-sm bg-[#2ECC8F] hover:bg-[#25a872] text-white px-4 py-2 rounded-full font-semibold">
-                  <Plus size={14} /> Añadir empleado
-                </Link>
+                <div className="flex gap-2">
+                  <Link href="/dashboard/turnos" className="flex items-center gap-1 text-sm border-2 border-[#1B2E4B] text-[#1B2E4B] hover:bg-[#1B2E4B] hover:text-white px-4 py-2 rounded-full font-semibold transition-colors">
+                    <Calendar size={14} /> Turnos
+                  </Link>
+                  <Link href="/dashboard/empleados" className="flex items-center gap-1 text-sm bg-[#2ECC8F] hover:bg-[#25a872] text-white px-4 py-2 rounded-full font-semibold transition-colors">
+                    <Plus size={14} /> Añadir empleado
+                  </Link>
+                </div>
               )}
             </div>
             {(empresa?.empleados?.length || 0) === 0 ? (
