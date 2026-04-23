@@ -2,11 +2,11 @@
 import { useEffect, useState, Suspense } from "react";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, Timestamp, doc, getDoc, getDocs, limit } from "firebase/firestore";
+import { collection, query, where, Timestamp, doc, getDoc, getDocs, limit, updateDoc } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Users, Clock, MapPin, LogOut, Plus, CheckCircle, XCircle, BarChart2, FileText, Calendar, Lock } from "lucide-react";
+import { Users, Clock, MapPin, LogOut, Plus, CheckCircle, XCircle, BarChart2, FileText, Calendar, Lock, Navigation, Settings } from "lucide-react";
 
 interface Fichaje {
   id: string;
@@ -21,6 +21,8 @@ interface Empresa {
   plan: string;
   empleados: string[];
   activo: boolean;
+  lat?: number;
+  lng?: number;
 }
 
 const PLANES: Record<string, { label: string; limite: number; precio: string; priceId: string }> = {
@@ -157,9 +159,10 @@ function DashboardContent() {
   const [fichajes, setFichajes] = useState<Fichaje[]>([]);
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"hoy" | "historial" | "empleados" | "informes" | "vacaciones">("hoy");
+  const [tab, setTab] = useState<"hoy" | "historial" | "empleados" | "informes" | "vacaciones" | "configuracion">("hoy");
   const [historial, setHistorial] = useState<Fichaje[]>([]);
   const [esDemo, setEsDemo] = useState(false);
+  const [loadingUbicacion, setLoadingUbicacion] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const demoParam = searchParams.get("demo");
@@ -214,6 +217,26 @@ function DashboardContent() {
   const formatHora  = (ts: Timestamp) => ts.toDate().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
   const formatFecha = (ts: Timestamp) => ts.toDate().toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
 
+  const guardarUbicacion = () => {
+    if (!navigator.geolocation) { alert("Tu dispositivo no soporta geolocalización."); return; }
+    setLoadingUbicacion(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        const uid = auth.currentUser?.uid;
+        if (!uid) return;
+        await updateDoc(doc(db, "empresas", uid), { lat, lng });
+        setEmpresa((prev) => prev ? { ...prev, lat, lng } : prev);
+        setLoadingUbicacion(false);
+      },
+      () => {
+        alert("No se pudo obtener la ubicación. Activa el GPS e inténtalo de nuevo.");
+        setLoadingUbicacion(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const exportarCSV = () => {
     const csv = ["Empleado,Tipo,Fecha y hora,Ubicación",
       ...historial.map((f) => `${f.empleadoNombre},${f.tipo},${f.hora.toDate().toLocaleString("es-ES")},${f.dentro ? "En ubicación" : "Fuera"}`)
@@ -230,11 +253,12 @@ function DashboardContent() {
   );
 
   const tabs = [
-    { id: "hoy",        label: "Hoy",         disponible: true  },
-    { id: "historial",  label: "Historial",   disponible: true  },
-    { id: "empleados",  label: "Empleados",   disponible: true  },
-    { id: "informes",   label: "Informes",    disponible: esPro },
-    { id: "vacaciones", label: "Vacaciones",  disponible: esPro },
+    { id: "hoy",           label: "Hoy",            disponible: true  },
+    { id: "historial",     label: "Historial",      disponible: true  },
+    { id: "empleados",     label: "Empleados",      disponible: true  },
+    { id: "informes",      label: "Informes",       disponible: esPro },
+    { id: "vacaciones",    label: "Vacaciones",     disponible: esPro },
+    { id: "configuracion", label: "Configuración",  disponible: true  },
   ] as const;
 
   return (
@@ -498,6 +522,54 @@ function DashboardContent() {
               </div>
             </div>
             {plan === "pro" && <UpsellBanner tipo="logo" />}
+          </div>
+        )}
+
+        {/* CONFIGURACIÓN */}
+        {tab === "configuracion" && !esDemo && (
+          <div className="bg-white rounded-2xl shadow-sm p-8 max-w-xl">
+            <div className="flex items-center gap-3 mb-2">
+              <Settings size={20} className="text-[#2ECC8F]" />
+              <h2 className="font-bold text-[#1B2E4B]">Ubicación del centro de trabajo</h2>
+            </div>
+            <p className="text-gray-500 text-sm mb-6">
+              Define dónde está tu empresa. Los empleados solo podrán fichar dentro de un radio de 200 metros.
+            </p>
+
+            {empresa?.lat && empresa?.lng ? (
+              <div className="bg-[#2ECC8F]/10 border border-[#2ECC8F]/30 rounded-xl p-4 mb-6 flex items-center gap-3">
+                <MapPin size={20} className="text-[#2ECC8F] shrink-0" />
+                <div>
+                  <p className="font-semibold text-[#1B2E4B] text-sm">Ubicación configurada ✓</p>
+                  <a
+                    href={`https://www.google.com/maps?q=${empresa.lat},${empresa.lng}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="text-xs text-gray-500 hover:text-[#2ECC8F] transition-colors"
+                  >
+                    {empresa.lat.toFixed(5)}, {empresa.lng.toFixed(5)} · Ver en Maps
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+                <MapPin size={20} className="text-amber-500 shrink-0" />
+                <p className="text-amber-700 text-sm font-medium">
+                  Sin ubicación configurada — los empleados fichan sin verificación GPS.
+                </p>
+              </div>
+            )}
+
+            <button
+              onClick={guardarUbicacion}
+              disabled={loadingUbicacion}
+              className="flex items-center gap-2 bg-[#2ECC8F] hover:bg-[#25a872] text-white px-6 py-3 rounded-xl font-bold text-sm transition-colors disabled:opacity-60"
+            >
+              <Navigation size={16} />
+              {loadingUbicacion ? "Obteniendo ubicación GPS..." : empresa?.lat ? "Actualizar ubicación" : "Usar mi ubicación actual (GPS)"}
+            </button>
+            <p className="text-xs text-gray-400 mt-3">
+              Abre esta página desde la dirección de tu empresa para obtener las coordenadas correctas.
+            </p>
           </div>
         )}
       </div>

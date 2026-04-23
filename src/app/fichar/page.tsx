@@ -48,7 +48,9 @@ function FicharContent() {
         return;
       }
       const data = empleadoDoc.data();
-      setEmpleado({ nombre: data.nombre, empresaId: data.empresaId, empresaLat: data.lat, empresaLng: data.lng, empresaEmail: data.empresaEmail });
+      const empresaDoc = await getDoc(doc(db, "empresas", data.empresaId));
+      const emp = empresaDoc.data();
+      setEmpleado({ nombre: data.nombre, empresaId: data.empresaId, empresaLat: emp?.lat, empresaLng: emp?.lng, empresaEmail: emp?.email });
       const snap = await getDocs(query(collection(db, "fichajes"), where("empleadoId", "==", user.uid), orderBy("hora", "desc"), limit(1)));
       if (!snap.empty) {
         const uf = snap.docs[0].data();
