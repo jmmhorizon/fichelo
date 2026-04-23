@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(req: NextRequest) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   const body = await req.text();
   const sig = req.headers.get("stripe-signature")!;
 
@@ -16,21 +13,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Webhook inválido" }, { status: 400 });
   }
 
-  if (event.type === "customer.subscription.deleted") {
+  if (event.type === "customer.subscription.deleted" || event.type === "customer.subscription.updated") {
     const sub = event.data.object as Stripe.Subscription;
     const uid = sub.metadata?.uid;
     if (uid) {
-      await updateDoc(doc(db, "empresas", uid), { plan: "cancelado", activo: false });
-    }
-  }
-
-  if (event.type === "customer.subscription.updated") {
-    const sub = event.data.object as Stripe.Subscription;
-    const uid = sub.metadata?.uid;
-    if (uid) {
-      await updateDoc(doc(db, "empresas", uid), {
-        activo: sub.status === "active" || sub.status === "trialing",
-      });
+      const { db } = await import("@/lib/firebase");
+      const { doc, updateDoc } = await import("firebase/firestore");
+      if (event.type === "customer.subscription.deleted") {
+        await updateDoc(doc(db, "empresas", uid), { plan: "cancelado", activo: false });
+      } else {
+        await updateDoc(doc(db, "empresas", uid), {
+          activo: sub.status === "active" || sub.status === "trialing",
+        });
+      }
     }
   }
 

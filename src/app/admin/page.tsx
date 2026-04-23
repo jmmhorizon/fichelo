@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Users, Building2, TrendingUp, LogOut, CheckCircle, XCircle, Clock } from "lucide-react";
@@ -57,9 +57,9 @@ export default function AdminPage() {
       );
 
       const unsubFichajes = onSnapshot(
-        query(collection(db, "fichajes"), orderBy("hora", "desc")),
+        query(collection(db, "fichajes"), orderBy("hora", "desc"), limit(100)),
         (snap) => {
-          setFichajes(snap.docs.slice(0, 100).map((d) => ({ id: d.id, ...d.data() } as Fichaje)));
+          setFichajes(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Fichaje)));
         }
       );
 

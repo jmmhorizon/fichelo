@@ -13,6 +13,9 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-export const auth = getAuth(app);
+// getAuth uses browser-only APIs — skip on server to avoid SSR errors
+export const auth = typeof window !== "undefined"
+  ? getAuth(app)
+  : ({} as ReturnType<typeof getAuth>);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
