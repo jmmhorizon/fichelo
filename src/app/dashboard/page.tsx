@@ -2,7 +2,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, query, where, onSnapshot, orderBy, Timestamp, doc, getDoc, getDocs } from "firebase/firestore";
+import { collection, query, where, Timestamp, doc, getDoc, getDocs, limit } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -176,30 +176,32 @@ function DashboardContent() {
 
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) { router.push("/login"); return; }
-      const empresaDoc = await getDoc(doc(db, "empresas", user.uid));
-      if (empresaDoc.exists()) setEmpresa(empresaDoc.data() as Empresa);
+      try {
+        const [empresaDoc, fichajesSnap] = await Promise.all([
+          getDoc(doc(db, "empresas", user.uid)),
+          getDocs(query(
+            collection(db, "fichajes"),
+            where("empresaId", "==", user.uid),
+            limit(200)
+          )),
+        ]);
 
-      const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-      const qHoy = query(
-        collection(db, "fichajes"),
-        where("empresaId", "==", user.uid),
-        where("hora", ">=", Timestamp.fromDate(hoy)),
-        orderBy("hora", "desc")
-      );
-      const unsubF = onSnapshot(qHoy, (snap) => {
-        setFichajes(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Fichaje)));
+        if (empresaDoc.exists()) setEmpresa(empresaDoc.data() as Empresa);
+
+        const todos = fichajesSnap.docs
+          .map((d) => ({ id: d.id, ...d.data() } as Fichaje))
+          .sort((a, b) => b.hora.seconds - a.hora.seconds);
+
+        const hoyTs = new Date(); hoyTs.setHours(0, 0, 0, 0);
+        const hace30Ts = new Date(Date.now() - 30 * 86400 * 1000);
+
+        setFichajes(todos.filter((f) => f.hora.toDate() >= hoyTs));
+        setHistorial(todos.filter((f) => f.hora.toDate() >= hace30Ts));
+      } catch (err) {
+        console.error("Error cargando dashboard:", err);
+      } finally {
         setLoading(false);
-      });
-
-      const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30);
-      const snapHist = await getDocs(query(
-        collection(db, "fichajes"),
-        where("empresaId", "==", user.uid),
-        where("hora", ">=", Timestamp.fromDate(hace30)),
-        orderBy("hora", "desc")
-      ));
-      setHistorial(snapHist.docs.map((d) => ({ id: d.id, ...d.data() } as Fichaje)));
-      return () => unsubF();
+      }
     });
     return () => unsub();
   }, [router, demoParam]);
