@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Users, Building2, TrendingUp, LogOut, CheckCircle, XCircle, Clock } from "lucide-react";
@@ -42,31 +42,20 @@ export default function AdminPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user || user.email !== ADMIN_EMAIL) {
         router.push("/");
         return;
       }
 
-      const unsubEmpresas = onSnapshot(
-        query(collection(db, "empresas"), orderBy("creadoEn", "desc")),
-        (snap) => {
-          setEmpresas(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Empresa)));
-          setLoading(false);
-        }
-      );
+      const [empSnap, fichajesSnap] = await Promise.all([
+        getDocs(query(collection(db, "empresas"), orderBy("creadoEn", "desc"))),
+        getDocs(query(collection(db, "fichajes"), orderBy("hora", "desc"), limit(100))),
+      ]);
 
-      const unsubFichajes = onSnapshot(
-        query(collection(db, "fichajes"), orderBy("hora", "desc"), limit(100)),
-        (snap) => {
-          setFichajes(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Fichaje)));
-        }
-      );
-
-      return () => {
-        unsubEmpresas();
-        unsubFichajes();
-      };
+      setEmpresas(empSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Empresa)));
+      setFichajes(fichajesSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Fichaje)));
+      setLoading(false);
     });
     return () => unsub();
   }, [router]);

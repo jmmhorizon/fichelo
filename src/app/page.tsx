@@ -27,7 +27,7 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link href="/registro" className="bg-[#2ECC8F] hover:bg-[#25a872] text-white px-8 py-4 rounded-full font-bold text-lg transition-colors text-center">
-                Prueba gratis 3 días
+                Prueba gratis 7 días
               </Link>
               <Link href="#funciones" className="border-2 border-white/30 hover:border-white text-white px-8 py-4 rounded-full font-semibold text-lg transition-colors text-center">
                 Ver cómo funciona
@@ -131,7 +131,7 @@ export default function Home() {
         <div className="max-w-2xl mx-auto px-4">
           <h2 className="text-4xl font-bold mb-4">Empieza hoy mismo</h2>
           <p className="text-gray-300 text-lg mb-8">
-            3 días gratis, sin compromisos. Configura tu empresa en menos de 5 minutos.
+            7 días gratis, sin compromisos. Configura tu empresa en menos de 5 minutos.
           </p>
           <Link href="/registro" className="bg-[#2ECC8F] hover:bg-[#25a872] text-white px-10 py-4 rounded-full font-bold text-lg transition-colors inline-block">
             Crear cuenta gratis

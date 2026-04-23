@@ -18,7 +18,7 @@ export default function Navbar() {
           <Link href="#precios" className="text-gray-600 hover:text-[#2ECC8F] transition-colors text-sm font-medium">Precios</Link>
           <Link href="/login" className="text-gray-600 hover:text-[#2ECC8F] transition-colors text-sm font-medium">Iniciar sesión</Link>
           <Link href="/registro" className="bg-[#2ECC8F] hover:bg-[#25a872] text-white px-5 py-2 rounded-full text-sm font-semibold transition-colors">
-            Prueba gratis 3 días
+            Prueba gratis 7 días
           </Link>
         </div>
 
@@ -35,7 +35,7 @@ export default function Navbar() {
           <Link href="#precios" className="text-gray-600 text-sm font-medium" onClick={() => setOpen(false)}>Precios</Link>
           <Link href="/login" className="text-gray-600 text-sm font-medium" onClick={() => setOpen(false)}>Iniciar sesión</Link>
           <Link href="/registro" className="bg-[#2ECC8F] text-white px-5 py-2 rounded-full text-sm font-semibold text-center" onClick={() => setOpen(false)}>
-            Prueba gratis 3 días
+            Prueba gratis 7 días
           </Link>
         </div>
       )}

@@ -59,7 +59,7 @@ export default function Pricing() {
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-[#1B2E4B] mb-4">Planes y precios</h2>
-          <p className="text-gray-500 text-lg">3 días gratis sin necesidad de comprometerte</p>
+          <p className="text-gray-500 text-lg">7 días gratis sin necesidad de comprometerte</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
@@ -106,7 +106,7 @@ export default function Pricing() {
                     : "border-2 border-[#2ECC8F] text-[#2ECC8F] hover:bg-[#2ECC8F] hover:text-white"
                 }`}
               >
-                Empezar 3 días gratis
+                Empezar 7 días gratis
               </Link>
             </div>
           ))}

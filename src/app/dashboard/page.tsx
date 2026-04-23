@@ -115,7 +115,7 @@ function UpsellBanner({ tipo }: { tipo: keyof typeof UPSELL }) {
           >
             🚀 Activar Plan {planDestino.label} ahora
           </Link>
-          <p className="text-xs text-gray-400">3 días gratis · Sin permanencia</p>
+          <p className="text-xs text-gray-400">7 días gratis · Sin permanencia</p>
         </div>
       </div>
     </div>
