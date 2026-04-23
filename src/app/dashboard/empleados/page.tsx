@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -44,7 +44,7 @@ export default function EmpleadosPage() {
 
   const invitar = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    if (totalEmpleados >= limite) { setError(`Has alcanzado el límite de ${limite} empleados de tu plan.`); return; }
+    if (totalEmpleados >= limite) { setError(`Has alcanzado el lÃ­mite de ${limite} empleados de tu plan.`); return; }
     setLoading(true); setError(""); setEnviado(false);
     try {
       const res = await fetch("/api/invitar", {
@@ -58,13 +58,13 @@ export default function EmpleadosPage() {
       setLinkCopiado(`${window.location.origin}/unirse/${data.token}`);
       setNombre(""); setEmail("");
     } catch {
-      setError("Error al enviar la invitación. Inténtalo de nuevo.");
+      setError("Error al enviar la invitaciÃ³n. IntÃ©ntalo de nuevo.");
     } finally { setLoading(false); }
   };
 
   const copiarLink = (link: string) => {
     navigator.clipboard.writeText(link);
-    alert("¡Link copiado! Puedes enviárselo por WhatsApp o SMS.");
+    alert("Â¡Link copiado! Puedes enviÃ¡rselo por WhatsApp o SMS.");
   };
 
   return (
@@ -80,24 +80,24 @@ export default function EmpleadosPage() {
 
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-[#1B2E4B]">Gestión de empleados</h1>
+          <h1 className="text-2xl font-bold text-[#1B2E4B]">GestiÃ³n de empleados</h1>
           <p className="text-gray-500 text-sm mt-1">
-            {totalEmpleados} de {limite === 9999 ? "∞" : limite} empleados · Plan <span className="font-semibold capitalize">{empresa?.plan}</span>
+            {totalEmpleados} de {limite === 9999 ? "âˆž" : limite} empleados Â· Plan <span className="font-semibold capitalize">{empresa?.plan}</span>
           </p>
         </div>
 
-        {/* Formulario de invitación */}
+        {/* Formulario de invitaciÃ³n */}
         <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
           <h2 className="font-bold text-[#1B2E4B] mb-1">Invitar nuevo empleado</h2>
-          <p className="text-gray-400 text-sm mb-5">Le llegará un email con un enlace para registrarse y unirse a tu empresa automáticamente.</p>
+          <p className="text-gray-400 text-sm mb-5">Le llegarÃ¡ un email con un enlace para registrarse y unirse a tu empresa automÃ¡ticamente.</p>
 
           {enviado && linkCopiado && (
             <div className="bg-[#2ECC8F]/10 border border-[#2ECC8F]/30 rounded-xl p-4 mb-5">
               <div className="flex items-center gap-2 mb-2">
                 <CheckCircle size={18} className="text-[#2ECC8F]" />
-                <p className="text-[#1B2E4B] font-semibold text-sm">¡Invitación enviada por email!</p>
+                <p className="text-[#1B2E4B] font-semibold text-sm">Â¡InvitaciÃ³n enviada por email!</p>
               </div>
-              <p className="text-gray-500 text-xs mb-3">También puedes compartir el enlace directamente por WhatsApp:</p>
+              <p className="text-gray-500 text-xs mb-3">TambiÃ©n puedes compartir el enlace directamente por WhatsApp:</p>
               <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-gray-200">
                 <p className="text-xs text-gray-500 flex-1 truncate">{linkCopiado}</p>
                 <button onClick={() => copiarLink(linkCopiado)} className="flex items-center gap-1 text-xs text-[#2ECC8F] font-semibold shrink-0 hover:underline">
@@ -112,7 +112,7 @@ export default function EmpleadosPage() {
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Nombre del empleado</label>
                 <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} required
-                  placeholder="Juan García"
+                  placeholder="Juan GarcÃ­a"
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F] transition-colors" />
               </div>
               <div>
@@ -126,11 +126,11 @@ export default function EmpleadosPage() {
             <button type="submit" disabled={loading || totalEmpleados >= limite}
               className="flex items-center gap-2 bg-[#2ECC8F] hover:bg-[#25a872] text-white px-6 py-3 rounded-xl font-bold text-sm transition-colors disabled:opacity-50">
               <Send size={15} />
-              {loading ? "Enviando..." : "Enviar invitación"}
+              {loading ? "Enviando..." : "Enviar invitaciÃ³n"}
             </button>
             {totalEmpleados >= limite && (
               <p className="text-amber-500 text-xs font-medium">
-                Has alcanzado el límite de tu plan. <Link href="/dashboard?upgrade=1" className="underline">Mejora tu plan</Link> para añadir más empleados.
+                Has alcanzado el lÃ­mite de tu plan. <Link href="/dashboard?upgrade=1" className="underline">Mejora tu plan</Link> para aÃ±adir mÃ¡s empleados.
               </p>
             )}
           </form>
@@ -145,7 +145,7 @@ export default function EmpleadosPage() {
           {empleados.length === 0 ? (
             <div className="p-12 text-center text-gray-400">
               <Users size={36} className="mx-auto mb-3 opacity-20" />
-              <p>Aún no tienes empleados registrados</p>
+              <p>AÃºn no tienes empleados registrados</p>
               <p className="text-xs mt-1">Usa el formulario de arriba para invitar al primero</p>
             </div>
           ) : (

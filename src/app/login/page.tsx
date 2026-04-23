@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState } from "react";
 import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
@@ -25,7 +25,7 @@ export default function LoginPage() {
         router.push("/dashboard");
       }
     } catch {
-      setError("Email o contraseña incorrectos");
+      setError("Email o contraseÃ±a incorrectos");
     } finally {
       setLoading(false);
     }
@@ -42,7 +42,7 @@ export default function LoginPage() {
         router.push("/dashboard");
       }
     } catch {
-      setError("Error al iniciar sesión con Google");
+      setError("Error al iniciar sesiÃ³n con Google");
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,7 @@ export default function LoginPage() {
           <Link href="/">
             <Image src="/logo.png" alt="Fichelo" width={130} height={44} className="h-11 w-auto mx-auto mb-6" />
           </Link>
-          <h1 className="text-2xl font-bold text-[#1B2E4B]">Iniciar sesión</h1>
+          <h1 className="text-2xl font-bold text-[#1B2E4B]">Iniciar sesiÃ³n</h1>
           <p className="text-gray-500 text-sm mt-1">Accede a tu panel de control</p>
         </div>
 
@@ -87,14 +87,14 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ContraseÃ±a</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F] transition-colors"
-              placeholder="••••••••"
+              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
             />
           </div>
 
@@ -105,12 +105,12 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-[#2ECC8F] hover:bg-[#25a872] text-white py-3 rounded-xl font-semibold transition-colors disabled:opacity-60"
           >
-            {loading ? "Entrando..." : "Iniciar sesión"}
+            {loading ? "Entrando..." : "Iniciar sesiÃ³n"}
           </button>
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          ¿No tienes cuenta?{" "}
+          Â¿No tienes cuenta?{" "}
           <Link href="/registro" className="text-[#2ECC8F] font-semibold hover:underline">
             Registrarse
           </Link>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect, useState, Suspense } from "react";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -24,9 +24,9 @@ interface Empresa {
 }
 
 const PLANES: Record<string, { label: string; limite: number; precio: string; priceId: string }> = {
-  basico:      { label: "Básico",      limite: 15,   precio: "19,90€/mes", priceId: "basico"      },
-  pro:         { label: "Pro",         limite: 50,   precio: "39,90€/mes", priceId: "pro"         },
-  empresarial: { label: "Empresarial", limite: 9999, precio: "89,90€/mes", priceId: "empresarial" },
+  basico:      { label: "BÃ¡sico",      limite: 15,   precio: "19,90â‚¬/mes", priceId: "basico"      },
+  pro:         { label: "Pro",         limite: 50,   precio: "39,90â‚¬/mes", priceId: "pro"         },
+  empresarial: { label: "Empresarial", limite: 9999, precio: "89,90â‚¬/mes", priceId: "empresarial" },
 };
 
 const UPSELL: Record<string, { titulo: string; descripcion: string; planRequerido: "pro" | "empresarial"; beneficios: string[] }> = {
@@ -34,25 +34,25 @@ const UPSELL: Record<string, { titulo: string; descripcion: string; planRequerid
     titulo: "Exportar informes en CSV y PDF",
     descripcion: "Descarga el historial completo de fichajes para analizar en Excel o Google Sheets.",
     planRequerido: "pro",
-    beneficios: ["Historial ilimitado", "Exportar a CSV y PDF", "Informes mensuales automáticos"],
+    beneficios: ["Historial ilimitado", "Exportar a CSV y PDF", "Informes mensuales automÃ¡ticos"],
   },
   informes: {
-    titulo: "Informes y estadísticas avanzadas",
+    titulo: "Informes y estadÃ­sticas avanzadas",
     descripcion: "Analiza el rendimiento de tu equipo con informes detallados por empleado y mes.",
     planRequerido: "pro",
-    beneficios: ["Resumen mensual por empleado", "Estadísticas de puntualidad", "Exportar informes"],
+    beneficios: ["Resumen mensual por empleado", "EstadÃ­sticas de puntualidad", "Exportar informes"],
   },
   vacaciones: {
-    titulo: "Gestión de vacaciones y ausencias",
+    titulo: "GestiÃ³n de vacaciones y ausencias",
     descripcion: "Controla las vacaciones, bajas y ausencias de todos tus empleados desde un solo lugar.",
     planRequerido: "pro",
     beneficios: ["Registro de vacaciones", "Control de ausencias", "Calendario del equipo"],
   },
   ubicaciones: {
-    titulo: "Múltiples ubicaciones de trabajo",
+    titulo: "MÃºltiples ubicaciones de trabajo",
     descripcion: "Configura varias sedes o puntos de fichaje para tu empresa.",
     planRequerido: "pro",
-    beneficios: ["Sedes ilimitadas", "GPS por ubicación", "Panel unificado"],
+    beneficios: ["Sedes ilimitadas", "GPS por ubicaciÃ³n", "Panel unificado"],
   },
   logo: {
     titulo: "Logo personalizado de tu empresa",
@@ -62,9 +62,9 @@ const UPSELL: Record<string, { titulo: string; descripcion: string; planRequerid
   },
   api: {
     titulo: "API e integraciones",
-    descripcion: "Conecta Fichelo con tu software de RRHH, nóminas o ERP mediante nuestra API.",
+    descripcion: "Conecta Fichelo con tu software de RRHH, nÃ³minas o ERP mediante nuestra API.",
     planRequerido: "empresarial",
-    beneficios: ["API REST completa", "Webhooks en tiempo real", "Soporte técnico dedicado"],
+    beneficios: ["API REST completa", "Webhooks en tiempo real", "Soporte tÃ©cnico dedicado"],
   },
 };
 
@@ -113,9 +113,9 @@ function UpsellBanner({ tipo }: { tipo: keyof typeof UPSELL }) {
             className="block text-white font-bold py-4 px-6 rounded-xl transition-all text-sm shadow-lg hover:shadow-xl hover:scale-105"
             style={{ backgroundColor: color }}
           >
-            🚀 Activar Plan {planDestino.label} ahora
+            ðŸš€ Activar Plan {planDestino.label} ahora
           </Link>
-          <p className="text-xs text-gray-400">7 días gratis · Sin permanencia</p>
+          <p className="text-xs text-gray-400">7 dÃ­as gratis Â· Sin permanencia</p>
         </div>
       </div>
     </div>
@@ -130,26 +130,26 @@ const ayer   = new Timestamp(ahora.seconds - 86400, 0);
 const hace2d = new Timestamp(ahora.seconds - 172800, 0);
 
 const DEMO_FICHAJES: Fichaje[] = [
-  { id: "1", empleadoNombre: "Carlos García",   tipo: "entrada", hora: hace3h, dentro: true  },
-  { id: "2", empleadoNombre: "María López",     tipo: "entrada", hora: hace2h, dentro: true  },
-  { id: "3", empleadoNombre: "Pedro Martínez",  tipo: "entrada", hora: hace1h, dentro: false },
-  { id: "4", empleadoNombre: "Ana Fernández",   tipo: "entrada", hora: ahora,  dentro: true  },
-  { id: "5", empleadoNombre: "Carlos García",   tipo: "salida",  hora: ahora,  dentro: true  },
+  { id: "1", empleadoNombre: "Carlos GarcÃ­a",   tipo: "entrada", hora: hace3h, dentro: true  },
+  { id: "2", empleadoNombre: "MarÃ­a LÃ³pez",     tipo: "entrada", hora: hace2h, dentro: true  },
+  { id: "3", empleadoNombre: "Pedro MartÃ­nez",  tipo: "entrada", hora: hace1h, dentro: false },
+  { id: "4", empleadoNombre: "Ana FernÃ¡ndez",   tipo: "entrada", hora: ahora,  dentro: true  },
+  { id: "5", empleadoNombre: "Carlos GarcÃ­a",   tipo: "salida",  hora: ahora,  dentro: true  },
 ];
 
 const DEMO_HISTORIAL: Fichaje[] = [
   ...DEMO_FICHAJES,
-  { id: "6",  empleadoNombre: "Carlos García",  tipo: "entrada", hora: ayer,   dentro: true  },
-  { id: "7",  empleadoNombre: "María López",    tipo: "entrada", hora: ayer,   dentro: true  },
-  { id: "8",  empleadoNombre: "Pedro Martínez", tipo: "salida",  hora: ayer,   dentro: true  },
-  { id: "9",  empleadoNombre: "Ana Fernández",  tipo: "entrada", hora: hace2d, dentro: false },
-  { id: "10", empleadoNombre: "Luis Sánchez",   tipo: "entrada", hora: hace2d, dentro: true  },
+  { id: "6",  empleadoNombre: "Carlos GarcÃ­a",  tipo: "entrada", hora: ayer,   dentro: true  },
+  { id: "7",  empleadoNombre: "MarÃ­a LÃ³pez",    tipo: "entrada", hora: ayer,   dentro: true  },
+  { id: "8",  empleadoNombre: "Pedro MartÃ­nez", tipo: "salida",  hora: ayer,   dentro: true  },
+  { id: "9",  empleadoNombre: "Ana FernÃ¡ndez",  tipo: "entrada", hora: hace2d, dentro: false },
+  { id: "10", empleadoNombre: "Luis SÃ¡nchez",   tipo: "entrada", hora: hace2d, dentro: true  },
 ];
 
 const DEMO_EMPRESAS: Record<string, Empresa> = {
-  basico:      { nombre: "Taller Mecánico López",  plan: "basico",      empleados: ["Carlos García", "María López", "Pedro Martínez", "Ana Fernández"], activo: true },
-  pro:         { nombre: "Distribuciones García",  plan: "pro",         empleados: ["Carlos García", "María López", "Pedro Martínez", "Ana Fernández", "Luis Sánchez", "Elena Torres", "Javier Ruiz"], activo: true },
-  empresarial: { nombre: "Grupo Construcciones SA", plan: "empresarial", empleados: ["Carlos García", "María López", "Pedro Martínez", "Ana Fernández", "Luis Sánchez", "Elena Torres", "Javier Ruiz", "Carmen Díaz", "Roberto Gil", "Patricia Moreno"], activo: true },
+  basico:      { nombre: "Taller MecÃ¡nico LÃ³pez",  plan: "basico",      empleados: ["Carlos GarcÃ­a", "MarÃ­a LÃ³pez", "Pedro MartÃ­nez", "Ana FernÃ¡ndez"], activo: true },
+  pro:         { nombre: "Distribuciones GarcÃ­a",  plan: "pro",         empleados: ["Carlos GarcÃ­a", "MarÃ­a LÃ³pez", "Pedro MartÃ­nez", "Ana FernÃ¡ndez", "Luis SÃ¡nchez", "Elena Torres", "Javier Ruiz"], activo: true },
+  empresarial: { nombre: "Grupo Construcciones SA", plan: "empresarial", empleados: ["Carlos GarcÃ­a", "MarÃ­a LÃ³pez", "Pedro MartÃ­nez", "Ana FernÃ¡ndez", "Luis SÃ¡nchez", "Elena Torres", "Javier Ruiz", "Carmen DÃ­az", "Roberto Gil", "Patricia Moreno"], activo: true },
 };
 
 
@@ -213,8 +213,8 @@ function DashboardContent() {
   const formatFecha = (ts: Timestamp) => ts.toDate().toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
 
   const exportarCSV = () => {
-    const csv = ["Empleado,Tipo,Fecha y hora,Ubicación",
-      ...historial.map((f) => `${f.empleadoNombre},${f.tipo},${f.hora.toDate().toLocaleString("es-ES")},${f.dentro ? "En ubicación" : "Fuera"}`)
+    const csv = ["Empleado,Tipo,Fecha y hora,UbicaciÃ³n",
+      ...historial.map((f) => `${f.empleadoNombre},${f.tipo},${f.hora.toDate().toLocaleString("es-ES")},${f.dentro ? "En ubicaciÃ³n" : "Fuera"}`)
     ].join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
@@ -240,7 +240,7 @@ function DashboardContent() {
       {/* Banner demo */}
       {esDemo && (
         <div className="bg-amber-400 text-amber-900 text-center text-sm py-2 font-semibold">
-          Modo demo — Plan {planInfo.label} · Datos de ejemplo · {" "}
+          Modo demo â€” Plan {planInfo.label} Â· Datos de ejemplo Â· {" "}
           <Link href="/registro" className="underline">Crear cuenta real</Link>
         </div>
       )}
@@ -278,10 +278,10 @@ function DashboardContent() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { icon: <Users size={16} className="text-[#2ECC8F]" />, label: "Empleados", valor: `${empresa?.empleados?.length || 0}/${planInfo.limite === 9999 ? "∞" : planInfo.limite}` },
+            { icon: <Users size={16} className="text-[#2ECC8F]" />, label: "Empleados", valor: `${empresa?.empleados?.length || 0}/${planInfo.limite === 9999 ? "âˆž" : planInfo.limite}` },
             { icon: <CheckCircle size={16} className="text-[#2ECC8F]" />, label: "Fichados hoy", valor: fichajes.filter((f) => f.tipo === "entrada").length },
             { icon: <XCircle size={16} className="text-red-300" />, label: "Sin fichar", valor: Math.max(0, (empresa?.empleados?.length || 0) - fichajes.filter((f) => f.tipo === "entrada").length) },
-            { icon: <MapPin size={16} className="text-[#2ECC8F]" />, label: "Fuera ubicación", valor: fichajes.filter((f) => !f.dentro).length },
+            { icon: <MapPin size={16} className="text-[#2ECC8F]" />, label: "Fuera ubicaciÃ³n", valor: fichajes.filter((f) => !f.dentro).length },
           ].map((s) => (
             <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm">
               <div className="flex items-center gap-2 mb-2">{s.icon}<span className="text-gray-400 text-xs">{s.label}</span></div>
@@ -315,7 +315,7 @@ function DashboardContent() {
             </div>
             {fichajes.length === 0 ? (
               <div className="p-12 text-center text-gray-400">
-                <Clock size={36} className="mx-auto mb-3 opacity-20" /><p>Aún no hay fichajes hoy</p>
+                <Clock size={36} className="mx-auto mb-3 opacity-20" /><p>AÃºn no hay fichajes hoy</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-50">
@@ -333,7 +333,7 @@ function DashboardContent() {
                     <div className="flex items-center gap-3">
                       <span className="text-sm text-gray-500 flex items-center gap-1"><Clock size={13} />{formatHora(f.hora)}</span>
                       <span className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${f.dentro ? "bg-[#2ECC8F]/10 text-[#2ECC8F]" : "bg-red-50 text-red-400"}`}>
-                        <MapPin size={11} />{f.dentro ? "En ubicación" : "Fuera"}
+                        <MapPin size={11} />{f.dentro ? "En ubicaciÃ³n" : "Fuera"}
                       </span>
                       {"lat" in f && (f as Fichaje & { lat?: number; lng?: number }).lat ? (
                         <a href={`https://www.google.com/maps?q=${(f as Fichaje & { lat?: number }).lat},${(f as Fichaje & { lng?: number }).lng}`}
@@ -354,14 +354,14 @@ function DashboardContent() {
         {tab === "historial" && (
           <div className="bg-white rounded-2xl shadow-sm">
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <h2 className="font-bold text-[#1B2E4B]">Historial {esPro ? "completo" : "últimos 30 días"}</h2>
+              <h2 className="font-bold text-[#1B2E4B]">Historial {esPro ? "completo" : "Ãºltimos 30 dÃ­as"}</h2>
               {esPro ? (
                 <button onClick={exportarCSV} className="flex items-center gap-2 text-sm bg-[#2ECC8F] hover:bg-[#25a872] text-white px-4 py-2 rounded-full font-semibold">
                   <FileText size={14} /> Exportar CSV
                 </button>
               ) : (
                 <Link href="/registro?plan=pro" className="flex items-center gap-2 text-sm border-2 border-gray-200 text-gray-400 px-4 py-2 rounded-full font-semibold hover:border-[#2ECC8F] hover:text-[#2ECC8F] transition-colors">
-                  <Lock size={13} /> Exportar CSV — Solo Pro
+                  <Lock size={13} /> Exportar CSV â€” Solo Pro
                 </Link>
               )}
             </div>
@@ -392,17 +392,17 @@ function DashboardContent() {
           <div className="bg-white rounded-2xl shadow-sm">
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <h2 className="font-bold text-[#1B2E4B]">
-                Empleados ({empresa?.empleados?.length || 0}/{planInfo.limite === 9999 ? "∞" : planInfo.limite})
+                Empleados ({empresa?.empleados?.length || 0}/{planInfo.limite === 9999 ? "âˆž" : planInfo.limite})
               </h2>
               {!esDemo && (
                 <Link href="/dashboard/empleados" className="flex items-center gap-1 text-sm bg-[#2ECC8F] hover:bg-[#25a872] text-white px-4 py-2 rounded-full font-semibold">
-                  <Plus size={14} /> Añadir empleado
+                  <Plus size={14} /> AÃ±adir empleado
                 </Link>
               )}
             </div>
             {(empresa?.empleados?.length || 0) === 0 ? (
               <div className="p-12 text-center text-gray-400">
-                <Users size={36} className="mx-auto mb-3 opacity-20" /><p>Aún no tienes empleados</p>
+                <Users size={36} className="mx-auto mb-3 opacity-20" /><p>AÃºn no tienes empleados</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-50">
@@ -438,7 +438,7 @@ function DashboardContent() {
                   {[
                     ["Total fichajes", historial.length],
                     ["Entradas registradas", historial.filter((f) => f.tipo === "entrada").length],
-                    ["Fuera de ubicación", historial.filter((f) => !f.dentro).length],
+                    ["Fuera de ubicaciÃ³n", historial.filter((f) => !f.dentro).length],
                     ["Empleados activos", empresa?.empleados?.length || 0],
                   ].map(([label, valor]) => (
                     <div key={String(label)} className="flex justify-between items-center">

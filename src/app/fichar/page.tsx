@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, Suspense } from "react";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -19,7 +19,7 @@ function calcularDistancia(lat1: number, lng1: number, lat2: number, lng2: numbe
 }
 
 // Datos demo
-const DEMO_EMPLEADO = { nombre: "Carlos García", empresaId: "demo", empresaLat: 40.4168, empresaLng: -3.7038 };
+const DEMO_EMPLEADO = { nombre: "Carlos GarcÃ­a", empresaId: "demo", empresaLat: 40.4168, empresaLng: -3.7038 };
 
 function FicharContent() {
   const [estado, setEstado] = useState<"idle" | "localizando" | "ok" | "fuera" | "error">("idle");
@@ -36,7 +36,7 @@ function FicharContent() {
     if (demoParam === "1") {
       setEsDemo(true);
       setEmpleado(DEMO_EMPLEADO);
-      setUltimoFichaje("Último fichaje: entrada hace 4 horas");
+      setUltimoFichaje("Ãšltimo fichaje: entrada hace 4 horas");
       return;
     }
 
@@ -53,7 +53,7 @@ function FicharContent() {
       if (!snap.empty) {
         const uf = snap.docs[0].data();
         const hora = uf.hora.toDate().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
-        setUltimoFichaje(`Último fichaje: ${uf.tipo} a las ${hora}`);
+        setUltimoFichaje(`Ãšltimo fichaje: ${uf.tipo} a las ${hora}`);
       }
     });
     return () => unsub();
@@ -62,10 +62,10 @@ function FicharContent() {
   const fichar = async (tipo: "entrada" | "salida") => {
     setEstado("localizando");
     setCoords(null);
-    setMensaje("Obteniendo tu ubicación GPS...");
+    setMensaje("Obteniendo tu ubicaciÃ³n GPS...");
 
     if (esDemo) {
-      // Simulación demo — pequeña variación aleatoria
+      // SimulaciÃ³n demo â€” pequeÃ±a variaciÃ³n aleatoria
       await new Promise((r) => setTimeout(r, 1500));
       const lat = DEMO_EMPLEADO.empresaLat + (Math.random() - 0.5) * 0.002;
       const lng = DEMO_EMPLEADO.empresaLng + (Math.random() - 0.5) * 0.002;
@@ -74,15 +74,15 @@ function FicharContent() {
       setCoords({ lat, lng });
       setEstado(dentro ? "ok" : "fuera");
       setMensaje(dentro
-        ? `¡${tipo === "entrada" ? "Entrada" : "Salida"} registrada correctamente!`
-        : "Fichaje registrado pero estás fuera de la zona de trabajo.");
-      setUltimoFichaje(`Último fichaje: ${tipo} ahora`);
+        ? `Â¡${tipo === "entrada" ? "Entrada" : "Salida"} registrada correctamente!`
+        : "Fichaje registrado pero estÃ¡s fuera de la zona de trabajo.");
+      setUltimoFichaje(`Ãšltimo fichaje: ${tipo} ahora`);
       return;
     }
 
     if (!navigator.geolocation) {
       setEstado("error");
-      setMensaje("Tu dispositivo no soporta geolocalización.");
+      setMensaje("Tu dispositivo no soporta geolocalizaciÃ³n.");
       return;
     }
 
@@ -116,11 +116,11 @@ function FicharContent() {
 
         setEstado(dentro ? "ok" : "fuera");
         setMensaje(dentro
-          ? `¡${tipo === "entrada" ? "Entrada" : "Salida"} registrada correctamente!`
-          : "Fichaje registrado pero estás fuera de la zona de trabajo.");
-        setUltimoFichaje(`Último fichaje: ${tipo} ahora`);
+          ? `Â¡${tipo === "entrada" ? "Entrada" : "Salida"} registrada correctamente!`
+          : "Fichaje registrado pero estÃ¡s fuera de la zona de trabajo.");
+        setUltimoFichaje(`Ãšltimo fichaje: ${tipo} ahora`);
       },
-      () => { setEstado("error"); setMensaje("No se pudo obtener tu ubicación. Activa el GPS."); },
+      () => { setEstado("error"); setMensaje("No se pudo obtener tu ubicaciÃ³n. Activa el GPS."); },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
@@ -129,7 +129,7 @@ function FicharContent() {
     <div className="min-h-screen bg-gradient-to-br from-[#1B2E4B] to-[#243d62] flex flex-col">
       {esDemo && (
         <div className="bg-amber-400 text-amber-900 text-center text-sm py-2 font-semibold">
-          Modo demo — GPS simulado ·{" "}
+          Modo demo â€” GPS simulado Â·{" "}
           <Link href="/registro" className="underline">Crear cuenta real</Link>
         </div>
       )}
@@ -172,7 +172,7 @@ function FicharContent() {
               className="flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-[#2ECC8F] transition-colors mb-4 bg-gray-50 rounded-xl py-2 px-3"
             >
               <MapPin size={12} />
-              {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)} · Ver en Maps
+              {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)} Â· Ver en Maps
             </a>
           )}
 
@@ -181,16 +181,16 @@ function FicharContent() {
             <div className="flex gap-3 mt-2">
               <button onClick={() => fichar("entrada")}
                 className="flex-1 bg-[#2ECC8F] hover:bg-[#25a872] text-white py-4 rounded-2xl font-bold transition-colors text-sm">
-                ✅ Entrada
+                âœ… Entrada
               </button>
               <button onClick={() => fichar("salida")}
                 className="flex-1 bg-[#1B2E4B] hover:bg-[#243d62] text-white py-4 rounded-2xl font-bold transition-colors text-sm">
-                🚪 Salida
+                ðŸšª Salida
               </button>
             </div>
           )}
 
-          {/* Último fichaje */}
+          {/* Ãšltimo fichaje */}
           {ultimoFichaje && (
             <div className="flex items-center justify-center gap-1 text-xs text-gray-400 mt-4">
               <Clock size={11} />{ultimoFichaje}
@@ -201,9 +201,9 @@ function FicharContent() {
         {/* Info GPS */}
         <div className="mt-6 grid grid-cols-3 gap-3 w-full max-w-sm">
           {[
-            { icon: "📍", label: "GPS verificado", sub: "Precisión alta" },
-            { icon: "🔒", label: "100% seguro", sub: "Datos cifrados" },
-            { icon: "⚡", label: "Instantáneo", sub: "En segundos" },
+            { icon: "ðŸ“", label: "GPS verificado", sub: "PrecisiÃ³n alta" },
+            { icon: "ðŸ”’", label: "100% seguro", sub: "Datos cifrados" },
+            { icon: "âš¡", label: "InstantÃ¡neo", sub: "En segundos" },
           ].map((item) => (
             <div key={item.label} className="bg-white/10 rounded-2xl p-3 text-center">
               <p className="text-xl mb-1">{item.icon}</p>
