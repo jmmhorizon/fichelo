@@ -19,14 +19,14 @@ function calcularDistancia(lat1: number, lng1: number, lat2: number, lng2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-const DEMO_EMPLEADO = { nombre: "Carlos García", empresaId: "demo", empresaLat: 40.4168, empresaLng: -3.7038 };
+const DEMO_EMPLEADO = { nombre: "Carlos García", empresaId: "demo", empresaNombre: "Empresa Demo", emailJefe: "", empresaLat: 40.4168, empresaLng: -3.7038 };
 
 function FicharContent() {
   const [estado, setEstado]           = useState<"idle" | "localizando" | "ok" | "fuera" | "error">("idle");
   const [mensaje, setMensaje]         = useState("");
   const [coords, setCoords]           = useState<{ lat: number; lng: number } | null>(null);
   const [ultimoFichaje, setUltimoFichaje] = useState<string | null>(null);
-  const [empleado, setEmpleado]       = useState<{ nombre: string; empresaId: string; empresaLat?: number; empresaLng?: number } | null>(null);
+  const [empleado, setEmpleado]       = useState<{ nombre: string; empresaId: string; empresaNombre: string; emailJefe: string; empresaLat?: number; empresaLng?: number } | null>(null);
   const [esDemo, setEsDemo]           = useState(false);
   const [inicializado, setInicializado] = useState(false);
   const [autenticado, setAutenticado] = useState(false);
@@ -64,7 +64,7 @@ function FicharContent() {
         const data = empleadoDoc.data();
         const empresaDoc = await getDoc(doc(db, "empresas", data.empresaId));
         const emp = empresaDoc.data();
-        setEmpleado({ nombre: data.nombre, empresaId: data.empresaId, empresaLat: emp?.lat, empresaLng: emp?.lng });
+        setEmpleado({ nombre: data.nombre, empresaId: data.empresaId, empresaNombre: emp?.nombre ?? "", emailJefe: emp?.email ?? "", empresaLat: emp?.lat, empresaLng: emp?.lng });
 
         const snap = await getDocs(query(collection(db, "fichajes"), where("empleadoId", "==", user.uid), orderBy("hora", "desc"), limit(1)));
         if (!snap.empty) {
@@ -136,11 +136,13 @@ function FicharContent() {
           empresaId: empleado.empresaId, tipo, hora: now, lat, lng, dentro,
         });
 
-        fetch("/api/email/fichaje", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ empresaId: empleado.empresaId, empleadoNombre: empleado.nombre, tipo, hora: now.toDate().toISOString(), lat, lng, dentro }),
-        });
+        if (empleado.emailJefe) {
+          fetch("/api/email/fichaje", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ emailJefe: empleado.emailJefe, nombreEmpresa: empleado.empresaNombre, empleadoNombre: empleado.nombre, tipo, hora: now.toDate().toISOString(), lat, lng, dentro }),
+          }).catch(() => {});
+        }
 
         setEstado(dentro ? "ok" : "fuera");
         setMensaje(dentro ? `¡${tipo === "entrada" ? "Entrada" : "Salida"} registrada correctamente!` : "Fichaje registrado pero estás fuera de la zona.");

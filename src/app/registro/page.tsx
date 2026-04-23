@@ -42,7 +42,7 @@ function RegistroForm() {
       if (err instanceof Error && err.message.includes("email-already-in-use")) {
         setError("Ya existe una cuenta con este email");
       } else {
-        setError("Error al crear la cuenta. Int�ntalo de nuevo.");
+        setError("Error al crear la cuenta. Inténtalo de nuevo.");
       }
     } finally {
       setLoading(false);
@@ -72,7 +72,7 @@ function RegistroForm() {
           </Link>
           <h1 className="text-2xl font-bold text-[#1B2E4B]">Crear cuenta</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Plan <span className="font-semibold text-[#2ECC8F] capitalize">{plan}</span> � 7 d�as gratis
+            Plan <span className="font-semibold text-[#2ECC8F] capitalize">{plan}</span> · 7 días gratis
           </p>
         </div>
 
@@ -100,7 +100,7 @@ function RegistroForm() {
               onChange={(e) => setNombre(e.target.value)}
               required
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F] transition-colors"
-              placeholder="Juan Garc�a"
+              placeholder="Juan García"
             />
           </div>
           <div>
@@ -126,7 +126,7 @@ function RegistroForm() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contrase�a</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
             <input
               type="password"
               value={password}
@@ -134,7 +134,7 @@ function RegistroForm() {
               required
               minLength={6}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F] transition-colors"
-              placeholder="M�nimo 6 caracteres"
+              placeholder="Mínimo 6 caracteres"
             />
           </div>
 
@@ -151,14 +151,14 @@ function RegistroForm() {
 
         <p className="text-center text-xs text-gray-400 mt-4">
           Al registrarte aceptas los{" "}
-          <Link href="/terminos" className="underline">T�rminos de uso</Link> y la{" "}
-          <Link href="/privacidad" className="underline">Pol�tica de privacidad</Link>
+          <Link href="/terminos" className="underline">Términos de uso</Link> y la{" "}
+          <Link href="/privacidad" className="underline">Política de privacidad</Link>
         </p>
 
         <p className="text-center text-sm text-gray-500 mt-4">
-          �Ya tienes cuenta?{" "}
+          ¿Ya tienes cuenta?{" "}
           <Link href="/login" className="text-[#2ECC8F] font-semibold hover:underline">
-            Iniciar sesi�n
+            Iniciar sesión
           </Link>
         </p>
       </div>
