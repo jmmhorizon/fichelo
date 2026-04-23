@@ -28,13 +28,17 @@ export default function UnirsePage() {
 
   useEffect(() => {
     const cargar = async () => {
-      const snap = await getDoc(doc(db, "invitaciones", token));
-      if (!snap.exists()) { setEstado("error"); return; }
-      const inv = snap.data() as Invitacion;
-      if (inv.usado) { setEstado("usada"); return; }
-      if (new Date(inv.expira) < new Date()) { setEstado("expirada"); return; }
-      setInvitacion(inv);
-      setEstado("valida");
+      try {
+        const snap = await getDoc(doc(db, "invitaciones", token));
+        if (!snap.exists()) { setEstado("error"); return; }
+        const inv = snap.data() as Invitacion;
+        if (inv.usado) { setEstado("usada"); return; }
+        if (new Date(inv.expira) < new Date()) { setEstado("expirada"); return; }
+        setInvitacion(inv);
+        setEstado("valida");
+      } catch {
+        setEstado("error");
+      }
     };
     cargar();
   }, [token]);
