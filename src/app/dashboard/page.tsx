@@ -74,9 +74,8 @@ const UPSELL: Record<string, { titulo: string; descripcion: string; planRequerid
 function UpsellBanner({ tipo }: { tipo: keyof typeof UPSELL }) {
   const u = UPSELL[tipo];
   const planDestino = PLANES[u.planRequerido];
-  const esPro = u.planRequerido === "pro";
-  const color = esPro ? "#2ECC8F" : "#7c3aed";
-  const bgColor = esPro ? "bg-[#1B2E4B]" : "bg-purple-700";
+  const color = "#7c3aed";
+  const bgColor = "bg-purple-700";
 
   return (
     <div className="rounded-2xl overflow-hidden border-2 border-dashed" style={{ borderColor: color }}>
@@ -338,9 +337,11 @@ function DashboardContent() {
               className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
                 tab === t.id ? "bg-[#1B2E4B] text-white" :
                 t.disponible ? "bg-white text-gray-500 hover:bg-gray-100" :
-                "bg-white text-gray-300 cursor-not-allowed"
+                "bg-purple-50 text-purple-500 border border-purple-200 cursor-not-allowed hover:bg-purple-100"
               }`}>
-              {!t.disponible && <Lock size={12} />}{t.label}
+              {!t.disponible && <Lock size={12} className="text-purple-400" />}
+              {t.label}
+              {!t.disponible && <span className="ml-1 text-[10px] bg-purple-500 text-white px-1.5 py-0.5 rounded-full font-bold">PRO</span>}
             </button>
           ))}
         </div>
@@ -401,8 +402,8 @@ function DashboardContent() {
                   <FileText size={14} /> Exportar CSV
                 </button>
               ) : (
-                <Link href="/registro?plan=pro" className="flex items-center gap-2 text-sm border-2 border-gray-200 text-gray-400 px-4 py-2 rounded-full font-semibold hover:border-[#2ECC8F] hover:text-[#2ECC8F] transition-colors">
-                  <Lock size={13} /> Exportar CSV — Solo Pro
+                <Link href="/checkout?plan=pro" className="flex items-center gap-2 text-sm bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full font-semibold transition-colors shadow-sm">
+                  <Lock size={13} /> Exportar CSV · Activar Pro
                 </Link>
               )}
             </div>

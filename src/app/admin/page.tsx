@@ -132,7 +132,7 @@ export default function AdminPage() {
               <TrendingUp size={18} className="text-[#2ECC8F]" />
               <span className="text-gray-500 text-sm">Ingresos/mes</span>
             </div>
-            <p className="text-3xl font-bold text-[#2ECC8F]">{ingresosMes.toFixed(2)}€</p>
+            <p className="text-3xl font-bold text-[#2ECC8F]">{ingresosMes.toFixed(2)}�</p>
           </div>
         </div>
 
@@ -162,7 +162,7 @@ export default function AdminPage() {
                   <p className="text-4xl font-extrabold text-[#2ECC8F] mb-1">{count}</p>
                   <p className="text-sm text-gray-400">empresas activas</p>
                   <p className="text-sm font-semibold text-gray-600 mt-2">
-                    {(count * PRECIO[plan]).toFixed(2)}€/mes
+                    {(count * PRECIO[plan]).toFixed(2)}�/mes
                   </p>
                 </div>
               );
@@ -212,7 +212,7 @@ export default function AdminPage() {
                 {empresas.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
-                      Aún no hay empresas registradas
+                      A�n no hay empresas registradas
                     </td>
                   </tr>
                 )}
@@ -226,7 +226,7 @@ export default function AdminPage() {
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
               <Clock size={16} className="text-[#2ECC8F]" />
-              <h3 className="font-bold text-[#1B2E4B]">Últimos 100 fichajes</h3>
+              <h3 className="font-bold text-[#1B2E4B]">�ltimos 100 fichajes</h3>
             </div>
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-100">
@@ -234,7 +234,7 @@ export default function AdminPage() {
                   <th className="text-left px-6 py-4 text-gray-500 font-medium">Empleado</th>
                   <th className="text-left px-6 py-4 text-gray-500 font-medium">Tipo</th>
                   <th className="text-left px-6 py-4 text-gray-500 font-medium">Hora</th>
-                  <th className="text-left px-6 py-4 text-gray-500 font-medium">Ubicación</th>
+                  <th className="text-left px-6 py-4 text-gray-500 font-medium">Ubicaci�n</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -252,7 +252,7 @@ export default function AdminPage() {
                     <td className="px-6 py-4">
                       {f.dentro ? (
                         <span className="flex items-center gap-1 text-[#2ECC8F] text-xs">
-                          <CheckCircle size={12} /> En ubicación
+                          <CheckCircle size={12} /> En ubicaci�n
                         </span>
                       ) : (
                         <span className="flex items-center gap-1 text-red-400 text-xs">
@@ -265,7 +265,7 @@ export default function AdminPage() {
                 {fichajes.length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
-                      Aún no hay fichajes
+                      A�n no hay fichajes
                     </td>
                   </tr>
                 )}
