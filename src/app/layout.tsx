@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Fichelo.es — Control de fichajes con GPS",
-  description: "La forma más fácil de controlar el fichaje de tus empleados con verificación GPS en tiempo real.",
+  title: "Fichelo.es � Control de fichajes con GPS",
+  description: "La forma m�s f�cil de controlar el fichaje de tus empleados con verificaci�n GPS en tiempo real.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

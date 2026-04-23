@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
   const priceId = priceMap[plan];
   if (!priceId) {
-    return NextResponse.json({ error: "Plan no válido" }, { status: 400 });
+    return NextResponse.json({ error: "Plan no v�lido" }, { status: 400 });
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);

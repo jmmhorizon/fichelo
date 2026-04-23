@@ -4,17 +4,17 @@ import Link from "next/link";
 
 const planes = [
   {
-    nombre: "Básico",
+    nombre: "B�sico",
     precio: "19,90",
-    descripcion: "Ideal para pequeñas empresas",
+    descripcion: "Ideal para peque�as empresas",
     empleados: "Hasta 15 empleados",
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_BASIC,
     caracteristicas: [
       "Fichaje con GPS verificado",
       "Panel del jefe en tiempo real",
-      "Historial 30 días",
+      "Historial 30 d�as",
       "Notificaciones por email",
-      "1 ubicación de trabajo",
+      "1 ubicaci�n de trabajo",
       "Soporte por email",
     ],
     destacado: false,
@@ -26,12 +26,12 @@ const planes = [
     empleados: "Hasta 50 empleados",
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO,
     caracteristicas: [
-      "Todo lo del plan Básico",
-      "Múltiples ubicaciones",
+      "Todo lo del plan B�sico",
+      "M�ltiples ubicaciones",
       "Historial ilimitado",
       "Exportar a Excel y PDF",
-      "Informes mensuales automáticos",
-      "Gestión de vacaciones y ausencias",
+      "Informes mensuales autom�ticos",
+      "Gesti�n de vacaciones y ausencias",
       "Soporte prioritario",
     ],
     destacado: true,
@@ -46,7 +46,7 @@ const planes = [
       "Todo lo del plan Pro",
       "Logo personalizado de tu empresa",
       "API para integrar con otros sistemas",
-      "Soporte telefónico",
+      "Soporte telef�nico",
       "Gestor de cuenta dedicado",
     ],
     destacado: false,
@@ -59,7 +59,7 @@ export default function Pricing() {
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-[#1B2E4B] mb-4">Planes y precios</h2>
-          <p className="text-gray-500 text-lg">7 días gratis sin necesidad de comprometerte</p>
+          <p className="text-gray-500 text-lg">7 d�as gratis sin necesidad de comprometerte</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
@@ -74,7 +74,7 @@ export default function Pricing() {
             >
               {plan.destacado && (
                 <span className="text-xs font-bold text-[#2ECC8F] uppercase tracking-widest mb-2">
-                  Más popular
+                  M�s popular
                 </span>
               )}
               <h3 className="text-2xl font-bold mb-1">{plan.nombre}</h3>
@@ -82,7 +82,7 @@ export default function Pricing() {
                 {plan.descripcion}
               </p>
               <div className="mb-2">
-                <span className="text-4xl font-extrabold">{plan.precio}€</span>
+                <span className="text-4xl font-extrabold">{plan.precio}�</span>
                 <span className={`text-sm ${plan.destacado ? "text-gray-300" : "text-gray-500"}`}>/mes</span>
               </div>
               <p className={`text-sm font-medium mb-6 ${plan.destacado ? "text-[#2ECC8F]" : "text-[#2ECC8F]"}`}>
@@ -106,7 +106,7 @@ export default function Pricing() {
                     : "border-2 border-[#2ECC8F] text-[#2ECC8F] hover:bg-[#2ECC8F] hover:text-white"
                 }`}
               >
-                Empezar 7 días gratis
+                Empezar 7 d�as gratis
               </Link>
             </div>
           ))}

@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch {
-    return NextResponse.json({ error: "Webhook inválido" }, { status: 400 });
+    return NextResponse.json({ error: "Webhook inv�lido" }, { status: 400 });
   }
 
   if (event.type === "customer.subscription.deleted" || event.type === "customer.subscription.updated") {

@@ -16,9 +16,9 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-8">
           <Link href="#funciones" className="text-gray-600 hover:text-[#2ECC8F] transition-colors text-sm font-medium">Funciones</Link>
           <Link href="#precios" className="text-gray-600 hover:text-[#2ECC8F] transition-colors text-sm font-medium">Precios</Link>
-          <Link href="/login" className="text-gray-600 hover:text-[#2ECC8F] transition-colors text-sm font-medium">Iniciar sesión</Link>
+          <Link href="/login" className="text-gray-600 hover:text-[#2ECC8F] transition-colors text-sm font-medium">Iniciar sesi�n</Link>
           <Link href="/registro" className="bg-[#2ECC8F] hover:bg-[#25a872] text-white px-5 py-2 rounded-full text-sm font-semibold transition-colors">
-            Prueba gratis 7 días
+            Prueba gratis 7 d�as
           </Link>
         </div>
 
@@ -33,9 +33,9 @@ export default function Navbar() {
         <div className="md:hidden bg-white border-t border-gray-100 px-4 py-4 flex flex-col gap-4">
           <Link href="#funciones" className="text-gray-600 text-sm font-medium" onClick={() => setOpen(false)}>Funciones</Link>
           <Link href="#precios" className="text-gray-600 text-sm font-medium" onClick={() => setOpen(false)}>Precios</Link>
-          <Link href="/login" className="text-gray-600 text-sm font-medium" onClick={() => setOpen(false)}>Iniciar sesión</Link>
+          <Link href="/login" className="text-gray-600 text-sm font-medium" onClick={() => setOpen(false)}>Iniciar sesi�n</Link>
           <Link href="/registro" className="bg-[#2ECC8F] text-white px-5 py-2 rounded-full text-sm font-semibold text-center" onClick={() => setOpen(false)}>
-            Prueba gratis 7 días
+            Prueba gratis 7 d�as
           </Link>
         </div>
       )}
