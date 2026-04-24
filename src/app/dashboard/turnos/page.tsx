@@ -10,6 +10,51 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Users } from "lucide-react";
 
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
+// Plantillas de turno por sector
+const PLANTILLAS: Record<string, { label: string; inicio: string; fin: string }[]> = {
+  restaurante: [
+    { label: "Mañana",       inicio: "09:00", fin: "16:00" },
+    { label: "Tarde",        inicio: "16:00", fin: "00:00" },
+    { label: "Noche",        inicio: "22:00", fin: "06:00" },
+    { label: "Partido am",   inicio: "12:00", fin: "16:00" },
+    { label: "Partido pm",   inicio: "20:00", fin: "00:00" },
+    { label: "Media jorn.",  inicio: "10:00", fin: "14:00" },
+  ],
+  limpieza: [
+    { label: "Mañana",       inicio: "07:00", fin: "15:00" },
+    { label: "Tarde",        inicio: "15:00", fin: "23:00" },
+    { label: "Media mañana", inicio: "07:00", fin: "11:00" },
+    { label: "Media tarde",  inicio: "15:00", fin: "19:00" },
+    { label: "Jornada",      inicio: "08:00", fin: "16:00" },
+  ],
+  albanileria: [
+    { label: "Jornada",      inicio: "08:00", fin: "17:00" },
+    { label: "Mañana",       inicio: "07:00", fin: "14:00" },
+    { label: "Tarde",        inicio: "14:00", fin: "21:00" },
+    { label: "Intensiva",    inicio: "07:00", fin: "15:00" },
+  ],
+  tiendas: [
+    { label: "Mañana",       inicio: "09:00", fin: "15:00" },
+    { label: "Tarde",        inicio: "15:00", fin: "21:00" },
+    { label: "Jornada",      inicio: "09:00", fin: "21:00" },
+    { label: "Apertura",     inicio: "08:00", fin: "14:00" },
+    { label: "Cierre",       inicio: "16:00", fin: "22:00" },
+    { label: "Media",        inicio: "10:00", fin: "14:00" },
+  ],
+  oficina: [
+    { label: "Jornada",      inicio: "09:00", fin: "18:00" },
+    { label: "Media mañana", inicio: "09:00", fin: "14:00" },
+    { label: "Media tarde",  inicio: "14:00", fin: "18:00" },
+    { label: "Intensiva",    inicio: "08:00", fin: "15:00" },
+    { label: "Flexible",     inicio: "07:00", fin: "15:00" },
+  ],
+  otro: [
+    { label: "Mañana",       inicio: "09:00", fin: "14:00" },
+    { label: "Tarde",        inicio: "14:00", fin: "21:00" },
+    { label: "Jornada",      inicio: "09:00", fin: "18:00" },
+  ],
+};
+
 function getWeekNumber(date: Date): number {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
@@ -25,7 +70,7 @@ function getMonday(date: Date): Date {
   return d;
 }
 
-interface Empleado { id: string; nombre: string; email: string; }
+interface Empleado { id: string; nombre: string; email: string; sector?: string; rol?: string; }
 interface Turno { inicio?: string; fin?: string; libre?: boolean; }
 type Semana = Record<string, Turno>;
 
@@ -82,6 +127,10 @@ export default function TurnosPage() {
     return `${fmt(lunes)} – ${fmt(fin)} ${lunes.getFullYear()}`;
   };
 
+  // Devuelve las plantillas del sector del empleado (o genéricas si no tiene)
+  const plantillasDeEmp = (emp: Empleado) =>
+    PLANTILLAS[emp.sector ?? "otro"] ?? PLANTILLAS.otro;
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="w-10 h-10 border-4 border-[#2ECC8F] border-t-transparent rounded-full animate-spin" />
@@ -98,11 +147,10 @@ export default function TurnosPage() {
       </nav>
 
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Cabecera */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-[#1B2E4B]">Turnos semanales</h1>
-            <p className="text-gray-500 text-sm mt-1">Haz clic en una celda para asignar o editar el turno</p>
+            <p className="text-gray-500 text-sm mt-1">Haz clic en una celda para asignar el turno</p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => navSemana(-1)}
@@ -135,125 +183,138 @@ export default function TurnosPage() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b-2 border-gray-100">
-                    <th className="text-left px-5 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wide w-36 sticky left-0 bg-white z-10">
+                    <th className="text-left px-5 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wide w-40 sticky left-0 bg-white z-10">
                       Empleado
                     </th>
                     {DIAS.map((dia, i) => {
                       const fecha = new Date(lunes); fecha.setDate(fecha.getDate() + i);
                       const esHoy = fecha.toDateString() === new Date().toDateString();
                       return (
-                        <th key={dia} className="px-2 py-3 text-center min-w-[110px]">
-                          <span className={`text-xs font-semibold uppercase tracking-wide ${esHoy ? "text-[#2ECC8F]" : "text-gray-400"}`}>
-                            {dia}
-                          </span>
-                          <div className={`text-lg font-bold mt-0.5 ${esHoy ? "text-[#2ECC8F]" : "text-[#1B2E4B]"}`}>
-                            {fecha.getDate()}
-                          </div>
+                        <th key={dia} className="px-2 py-3 text-center min-w-[130px]">
+                          <span className={`text-xs font-semibold uppercase tracking-wide ${esHoy ? "text-[#2ECC8F]" : "text-gray-400"}`}>{dia}</span>
+                          <div className={`text-lg font-bold mt-0.5 ${esHoy ? "text-[#2ECC8F]" : "text-[#1B2E4B]"}`}>{fecha.getDate()}</div>
                         </th>
                       );
                     })}
                   </tr>
                 </thead>
                 <tbody>
-                  {empleados.map((emp, empIdx) => (
-                    <tr key={emp.id} className={`border-b border-gray-50 last:border-0 ${empIdx % 2 === 0 ? "" : "bg-gray-50/50"}`}>
-                      <td className="px-5 py-3 sticky left-0 bg-inherit z-10">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-[#1B2E4B]/10 rounded-full flex items-center justify-center font-bold text-xs text-[#1B2E4B] shrink-0">
-                            {emp.nombre.charAt(0).toUpperCase()}
+                  {empleados.map((emp, empIdx) => {
+                    const plantillas = plantillasDeEmp(emp);
+                    return (
+                      <tr key={emp.id} className={`border-b border-gray-50 last:border-0 ${empIdx % 2 === 0 ? "" : "bg-gray-50/50"}`}>
+                        <td className="px-5 py-3 sticky left-0 bg-inherit z-10">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-[#1B2E4B]/10 rounded-full flex items-center justify-center font-bold text-xs text-[#1B2E4B] shrink-0">
+                              {emp.nombre.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="text-sm font-medium text-[#1B2E4B] block truncate max-w-[80px]">
+                                {emp.nombre.split(" ")[0]}
+                              </span>
+                              {emp.rol && (
+                                <span className="text-[10px] text-gray-400 truncate max-w-[80px] block">{emp.rol}</span>
+                              )}
+                            </div>
                           </div>
-                          <span className="text-sm font-medium text-[#1B2E4B] truncate max-w-[80px]">
-                            {emp.nombre.split(" ")[0]}
-                          </span>
-                        </div>
-                      </td>
+                        </td>
 
-                      {[0, 1, 2, 3, 4, 5, 6].map((dayIdx) => {
-                        const clave = `${emp.id}_${dayIdx}`;
-                        const turno = turnos[clave];
-                        const isEditando = editando === clave;
+                        {[0, 1, 2, 3, 4, 5, 6].map((dayIdx) => {
+                          const clave = `${emp.id}_${dayIdx}`;
+                          const turno = turnos[clave];
+                          const isEditando = editando === clave;
 
-                        return (
-                          <td key={dayIdx} className="px-2 py-2 text-center align-middle">
-                            {isEditando ? (
-                              <div className="flex flex-col gap-1 items-center bg-white border-2 border-[#2ECC8F] rounded-xl p-2 shadow-md z-20 relative">
-                                <input
-                                  type="time"
-                                  value={inputInicio}
-                                  onChange={(e) => setInputInicio(e.target.value)}
-                                  className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-xs text-center"
-                                />
-                                <span className="text-xs text-gray-400">hasta</span>
-                                <input
-                                  type="time"
-                                  value={inputFin}
-                                  onChange={(e) => setInputFin(e.target.value)}
-                                  className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-xs text-center"
-                                />
-                                <div className="flex gap-1 mt-1 w-full">
-                                  <button
-                                    onClick={() => guardarTurno(clave, { inicio: inputInicio, fin: inputFin })}
-                                    className="flex-1 text-xs bg-[#2ECC8F] hover:bg-[#25a872] text-white py-1.5 rounded-lg font-bold transition-colors"
-                                  >
-                                    Guardar
-                                  </button>
-                                  <button
-                                    onClick={() => guardarTurno(clave, { libre: true })}
-                                    className="flex-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 py-1.5 rounded-lg font-semibold transition-colors"
-                                  >
-                                    Libre
-                                  </button>
-                                </div>
-                                <div className="flex gap-1 w-full">
-                                  {turno && (
-                                    <button
-                                      onClick={() => guardarTurno(clave, null)}
-                                      className="flex-1 text-xs text-red-400 hover:text-red-500 py-1 rounded-lg transition-colors"
-                                    >
-                                      Borrar
+                          return (
+                            <td key={dayIdx} className="px-1 py-2 text-center align-top">
+                              {isEditando ? (
+                                <div className="flex flex-col gap-1 items-center bg-white border-2 border-[#2ECC8F] rounded-xl p-2 shadow-lg z-20 relative min-w-[120px]">
+
+                                  {/* Plantillas rápidas del sector */}
+                                  <div className="w-full mb-1">
+                                    <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide text-left mb-1">Accesos rápidos</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {plantillas.map((p) => (
+                                        <button
+                                          key={p.label}
+                                          onClick={() => { setInputInicio(p.inicio); setInputFin(p.fin); }}
+                                          className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors font-medium ${
+                                            inputInicio === p.inicio && inputFin === p.fin
+                                              ? "bg-[#2ECC8F] text-white border-[#2ECC8F]"
+                                              : "border-gray-200 text-gray-500 hover:border-[#2ECC8F] hover:text-[#2ECC8F]"
+                                          }`}
+                                        >
+                                          {p.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  <div className="w-full h-px bg-gray-100 mb-1" />
+
+                                  {/* Inputs manuales */}
+                                  <input type="time" value={inputInicio} onChange={(e) => setInputInicio(e.target.value)}
+                                    className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-xs text-center" />
+                                  <span className="text-xs text-gray-400">hasta</span>
+                                  <input type="time" value={inputFin} onChange={(e) => setInputFin(e.target.value)}
+                                    className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-xs text-center" />
+
+                                  <div className="flex gap-1 mt-1 w-full">
+                                    <button onClick={() => guardarTurno(clave, { inicio: inputInicio, fin: inputFin })}
+                                      className="flex-1 text-xs bg-[#2ECC8F] hover:bg-[#25a872] text-white py-1.5 rounded-lg font-bold transition-colors">
+                                      Guardar
                                     </button>
-                                  )}
-                                  <button
-                                    onClick={() => setEditando(null)}
-                                    className="flex-1 text-xs text-gray-400 hover:text-gray-500 py-1 rounded-lg transition-colors"
-                                  >
-                                    Cancelar
-                                  </button>
+                                    <button onClick={() => guardarTurno(clave, { libre: true })}
+                                      className="flex-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 py-1.5 rounded-lg font-semibold transition-colors">
+                                      Libre
+                                    </button>
+                                  </div>
+                                  <div className="flex gap-1 w-full">
+                                    {turno && (
+                                      <button onClick={() => guardarTurno(clave, null)}
+                                        className="flex-1 text-xs text-red-400 hover:text-red-500 py-1 rounded-lg transition-colors">
+                                        Borrar
+                                      </button>
+                                    )}
+                                    <button onClick={() => setEditando(null)}
+                                      className="flex-1 text-xs text-gray-400 hover:text-gray-500 py-1 rounded-lg transition-colors">
+                                      Cancelar
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  setEditando(clave);
-                                  setInputInicio(turno?.inicio || "09:00");
-                                  setInputFin(turno?.fin || "17:00");
-                                }}
-                                className={`w-full min-h-[52px] rounded-xl px-1 py-2 text-xs font-semibold transition-all hover:scale-105 ${
-                                  turno?.libre
-                                    ? "bg-gray-100 text-gray-400 hover:bg-gray-200"
-                                    : turno?.inicio
-                                    ? "bg-[#2ECC8F]/15 text-[#1a9e6d] hover:bg-[#2ECC8F]/25"
-                                    : "bg-gray-50 text-gray-300 border-2 border-dashed border-gray-200 hover:border-gray-300 hover:text-gray-400"
-                                }`}
-                              >
-                                {turno?.libre ? (
-                                  <span>Libre</span>
-                                ) : turno?.inicio ? (
-                                  <span className="leading-tight">
-                                    {turno.inicio}<br />
-                                    <span className="text-gray-400 font-normal">–</span><br />
-                                    {turno.fin}
-                                  </span>
-                                ) : (
-                                  <span className="text-lg">+</span>
-                                )}
-                              </button>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    setEditando(clave);
+                                    setInputInicio(turno?.inicio || plantillas[0]?.inicio || "09:00");
+                                    setInputFin(turno?.fin || plantillas[0]?.fin || "17:00");
+                                  }}
+                                  className={`w-full min-h-[52px] rounded-xl px-1 py-2 text-xs font-semibold transition-all hover:scale-105 ${
+                                    turno?.libre
+                                      ? "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                                      : turno?.inicio
+                                      ? "bg-[#2ECC8F]/15 text-[#1a9e6d] hover:bg-[#2ECC8F]/25"
+                                      : "bg-gray-50 text-gray-300 border-2 border-dashed border-gray-200 hover:border-gray-300 hover:text-gray-400"
+                                  }`}
+                                >
+                                  {turno?.libre ? (
+                                    <span>Libre</span>
+                                  ) : turno?.inicio ? (
+                                    <span className="leading-tight">
+                                      {turno.inicio}<br />
+                                      <span className="text-gray-400 font-normal">–</span><br />
+                                      {turno.fin}
+                                    </span>
+                                  ) : (
+                                    <span className="text-lg">+</span>
+                                  )}
+                                </button>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
