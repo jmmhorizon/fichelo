@@ -148,6 +148,7 @@ export default function TurnosPage() {
             semanaKey,
             dayIdx,
             turnoInicio: turno.inicio,
+            turnoFin: turno.fin,
             lunesTimestamp: lunes.getTime(),
           }),
         });
