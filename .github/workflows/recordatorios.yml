@@ -1,0 +1,20 @@
+name: Recordatorios de turno
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # cada 5 minutos
+  workflow_dispatch:         # también se puede lanzar manualmente
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar API de recordatorios
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.APP_URL }}/api/cron/recordatorios?secret=${{ secrets.CRON_SECRET }}")
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "Error: la API devolvió $STATUS"
+            exit 1
+          fi
