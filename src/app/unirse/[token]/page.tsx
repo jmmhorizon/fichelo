@@ -8,6 +8,15 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
+const SECTORES: Record<string, { label: string; roles: string[] }> = {
+  restaurante: { label: "Hostelería / Restaurante", roles: ["Cocina", "Camarero/a", "Jefe de sala / Maître", "Ayudante de cocina", "Barman / Barmaid"] },
+  limpieza:    { label: "Limpieza", roles: ["Limpiador/a", "Cristalero/a", "Jefe/a de equipo", "Operario/a de mantenimiento"] },
+  albanileria: { label: "Albañilería / Reformas", roles: ["Albañil", "Oficial de 1ª", "Oficial de 2ª", "Peón", "Jefe de obra", "Fontanero/a", "Electricista", "Pintor/a"] },
+  tiendas:     { label: "Tiendas / Supermercados", roles: ["Cajero/a", "Reponedor/a", "Encargado/a", "Sección charcutería", "Sección frutería", "Almacén / Logística", "Atención al cliente"] },
+  oficina:     { label: "Oficina / Administración", roles: ["Administrativo/a", "Recepcionista", "Contable", "Secretario/a", "Técnico/a informático", "Comercial", "RRHH"] },
+  otro:        { label: "Otro sector", roles: ["Empleado/a"] },
+};
+
 interface Invitacion {
   empresaId: string;
   empresaNombre: string;
@@ -22,6 +31,8 @@ export default function UnirsePage() {
   const [invitacion, setInvitacion] = useState<Invitacion | null>(null);
   const [estado, setEstado] = useState<"cargando" | "valida" | "usada" | "expirada" | "completado" | "error">("cargando");
   const [password, setPassword] = useState("");
+  const [sector, setSector] = useState("restaurante");
+  const [rol, setRol] = useState(SECTORES.restaurante.roles[0]);
   const [loading, setLoading] = useState(false);
   const [errMsg, setErrMsg] = useState("");
   const router = useRouter();
@@ -50,6 +61,8 @@ export default function UnirsePage() {
       email: invitacion.emailEmpleado,
       empresaId: invitacion.empresaId,
       empresaNombre: invitacion.empresaNombre,
+      sector,
+      rol,
       creadoEn: new Date().toISOString(),
     });
     await updateDoc(doc(db, "empresas", invitacion.empresaId), {
@@ -136,6 +149,34 @@ export default function UnirsePage() {
             <p className="text-gray-500 text-sm mb-6">
               <strong className="text-[#1B2E4B]">{invitacion.empresaNombre}</strong> te ha invitado a fichar con Fichelo
             </p>
+
+            {/* Selector de sector y puesto */}
+            <div className="text-left mb-5 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Tu sector de trabajo</label>
+                <select
+                  value={sector}
+                  onChange={(e) => { setSector(e.target.value); setRol(SECTORES[e.target.value].roles[0]); }}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F]"
+                >
+                  {Object.entries(SECTORES).map(([k, v]) => (
+                    <option key={k} value={k}>{v.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Tu puesto</label>
+                <select
+                  value={rol}
+                  onChange={(e) => setRol(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F]"
+                >
+                  {SECTORES[sector].roles.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
             <button onClick={registroGoogle} disabled={loading}
               className="w-full flex items-center justify-center gap-3 border-2 border-gray-200 rounded-xl py-3 font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-all mb-4">

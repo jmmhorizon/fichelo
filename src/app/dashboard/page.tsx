@@ -24,12 +24,22 @@ interface Empresa {
   lat?: number;
   lng?: number;
   direccion?: string;
+  logoUrl?: string;
+  nombrePersonalizado?: string;
+}
+
+interface EmpleadoData {
+  id: string;
+  nombre: string;
+  email: string;
+  sector?: string;
+  rol?: string;
 }
 
 const PLANES: Record<string, { label: string; limite: number; precio: string; priceId: string }> = {
   basico:      { label: "Básico",      limite: 15,   precio: "19,90€/mes", priceId: "basico"      },
   pro:         { label: "Pro",         limite: 50,   precio: "39,90€/mes", priceId: "pro"         },
-  empresarial: { label: "Empresarial", limite: 9999, precio: "89,90€/mes", priceId: "empresarial" },
+  empresarial: { label: "Empresarial", limite: 200, precio: "89,90€/mes", priceId: "empresarial" },
 };
 
 const UPSELL: Record<string, { titulo: string; descripcion: string; planRequerido: "pro" | "empresarial"; beneficios: string[] }> = {
@@ -171,6 +181,10 @@ function DashboardContent() {
   const [ausenciaDesde, setAusenciaDesde] = useState("");
   const [ausenciaHasta, setAusenciaHasta] = useState("");
   const [ausencias, setAusencias] = useState<{ empleado: string; tipo: string; desde: string; hasta: string }[]>([]);
+  const [empleadosData, setEmpleadosData] = useState<EmpleadoData[]>([]);
+  const [logoUrl, setLogoUrl] = useState("");
+  const [nombreEmpresaEdit, setNombreEmpresaEdit] = useState("");
+  const [guardandoConfig, setGuardandoConfig] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const demoParam = searchParams.get("demo");
@@ -188,16 +202,19 @@ function DashboardContent() {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) { router.push("/login"); return; }
       try {
-        const [empresaDoc, fichajesSnap] = await Promise.all([
+        const [empresaDoc, fichajesSnap, empleadosSnap] = await Promise.all([
           getDoc(doc(db, "empresas", user.uid)),
-          getDocs(query(
-            collection(db, "fichajes"),
-            where("empresaId", "==", user.uid),
-            limit(200)
-          )),
+          getDocs(query(collection(db, "fichajes"), where("empresaId", "==", user.uid), limit(200))),
+          getDocs(query(collection(db, "empleados"), where("empresaId", "==", user.uid))),
         ]);
 
-        if (empresaDoc.exists()) setEmpresa(empresaDoc.data() as Empresa);
+        if (empresaDoc.exists()) {
+          const emp = empresaDoc.data() as Empresa;
+          setEmpresa(emp);
+          setLogoUrl(emp.logoUrl ?? "");
+          setNombreEmpresaEdit(emp.nombrePersonalizado ?? emp.nombre ?? "");
+        }
+        setEmpleadosData(empleadosSnap.docs.map((d) => ({ id: d.id, ...d.data() } as EmpleadoData)));
 
         const todos = fichajesSnap.docs
           .map((d) => ({ id: d.id, ...d.data() } as Fichaje))
@@ -324,7 +341,7 @@ function DashboardContent() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { icon: <Users size={16} className="text-[#2ECC8F]" />, label: "Empleados", valor: `${empresa?.empleados?.length || 0}/${planInfo.limite === 9999 ? "∞" : planInfo.limite}` },
+            { icon: <Users size={16} className="text-[#2ECC8F]" />, label: "Empleados", valor: `${empresa?.empleados?.length || 0}/${planInfo.limite}` },
             { icon: <CheckCircle size={16} className="text-[#2ECC8F]" />, label: "Fichados hoy", valor: fichajes.filter((f) => f.tipo === "entrada").length },
             { icon: <XCircle size={16} className="text-red-300" />, label: "Sin fichar", valor: Math.max(0, (empresa?.empleados?.length || 0) - fichajes.filter((f) => f.tipo === "entrada").length) },
             { icon: <MapPin size={16} className="text-[#2ECC8F]" />, label: "Fuera ubicación", valor: fichajes.filter((f) => !f.dentro).length },
@@ -440,7 +457,7 @@ function DashboardContent() {
           <div className="bg-white rounded-2xl shadow-sm">
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <h2 className="font-bold text-[#1B2E4B]">
-                Empleados ({empresa?.empleados?.length || 0}/{planInfo.limite === 9999 ? "∞" : planInfo.limite})
+                Empleados ({empresa?.empleados?.length || 0}/{planInfo.limite})
               </h2>
               {!esDemo && (
                 <div className="flex gap-2">
@@ -528,7 +545,7 @@ function DashboardContent() {
                 </div>
                 {!esDemo && (
                   <button
-                    onClick={() => { setAusenciaEmpleado(empresa?.empleados?.[0] ?? ""); setAusenciaDesde(""); setAusenciaHasta(""); setModalAusencia(true); }}
+                    onClick={() => { setAusenciaEmpleado(empleadosData[0]?.nombre ?? empresa?.empleados?.[0] ?? ""); setAusenciaDesde(""); setAusenciaHasta(""); setModalAusencia(true); }}
                     className="flex items-center gap-1 text-sm bg-[#2ECC8F] hover:bg-[#25a872] text-white px-4 py-2 rounded-full font-semibold transition-colors"
                   >
                     <Plus size={14} /> Nueva ausencia
@@ -536,10 +553,10 @@ function DashboardContent() {
                 )}
               </div>
               <div className="divide-y divide-gray-50">
-                {ausencias.length === 0 && (empresa?.empleados ?? []).length === 0 && (
+                {ausencias.length === 0 && empleadosData.length === 0 && (
                   <p className="text-gray-400 text-sm text-center py-8">No hay empleados registrados aún.</p>
                 )}
-                {ausencias.length === 0 && (empresa?.empleados ?? []).length > 0 && (
+                {ausencias.length === 0 && empleadosData.length > 0 && (
                   <p className="text-gray-400 text-sm text-center py-8">No hay ausencias registradas. Pulsa &quot;Nueva ausencia&quot; para añadir.</p>
                 )}
                 {ausencias.map((a, i) => (
@@ -574,7 +591,7 @@ function DashboardContent() {
                     onChange={(e) => setAusenciaEmpleado(e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F]"
                   >
-                    {(empresa?.empleados ?? []).map((emp) => (
+                    {(empleadosData.length > 0 ? empleadosData.map((e) => e.nombre) : (empresa?.empleados ?? [])).map((emp) => (
                       <option key={emp} value={emp}>{emp}</option>
                     ))}
                   </select>
@@ -629,6 +646,7 @@ function DashboardContent() {
 
         {/* CONFIGURACIÓN */}
         {tab === "configuracion" && !esDemo && (
+          <>
           <div className="bg-white rounded-2xl shadow-sm p-8 max-w-xl">
             <div className="flex items-center gap-3 mb-2">
               <Settings size={20} className="text-[#2ECC8F]" />
@@ -694,23 +712,80 @@ function DashboardContent() {
                 <p className="text-xs text-gray-500 mb-1">Dirección encontrada:</p>
                 <p className="text-sm font-medium text-[#1B2E4B] mb-3 leading-snug">{resultadoBusqueda.display}</p>
                 <div className="flex gap-3">
-                  <a
-                    href={`https://www.google.com/maps?q=${resultadoBusqueda.lat},${resultadoBusqueda.lng}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="text-xs text-gray-400 hover:text-[#2ECC8F] underline"
-                  >
+                  <a href={`https://www.google.com/maps?q=${resultadoBusqueda.lat},${resultadoBusqueda.lng}`}
+                    target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:text-[#2ECC8F] underline">
                     Verificar en Maps
                   </a>
-                  <button
-                    onClick={guardarDireccion}
-                    className="ml-auto flex items-center gap-2 bg-[#2ECC8F] hover:bg-[#25a872] text-white px-5 py-2 rounded-xl font-bold text-sm transition-colors"
-                  >
+                  <button onClick={guardarDireccion}
+                    className="ml-auto flex items-center gap-2 bg-[#2ECC8F] hover:bg-[#25a872] text-white px-5 py-2 rounded-xl font-bold text-sm transition-colors">
                     ✓ Guardar esta ubicación
                   </button>
                 </div>
               </div>
             )}
           </div>
+
+          {/* Personalización empresarial */}
+          {plan === "empresarial" && !esDemo && (
+            <div className="bg-white rounded-2xl shadow-sm p-8 max-w-xl mt-6">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-lg">🏢</span>
+                <h2 className="font-bold text-[#1B2E4B]">Logo y nombre de empresa</h2>
+                <span className="text-xs bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full font-semibold">Empresarial</span>
+              </div>
+              <p className="text-gray-500 text-sm mb-6">
+                Personaliza cómo ven tu empresa los empleados en la app de fichaje.
+              </p>
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Nombre que verán los empleados</label>
+                  <input
+                    type="text"
+                    value={nombreEmpresaEdit}
+                    onChange={(e) => setNombreEmpresaEdit(e.target.value)}
+                    placeholder={empresa?.nombre ?? "Nombre de empresa"}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">URL del logo (imagen)</label>
+                  <input
+                    type="url"
+                    value={logoUrl}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                    placeholder="https://tuempresa.com/logo.png"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F]"
+                  />
+                  {logoUrl && (
+                    <div className="mt-2 p-3 bg-gray-50 rounded-xl flex items-center gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={logoUrl} alt="Vista previa" className="h-10 w-auto object-contain" onError={(e) => (e.currentTarget.style.display = "none")} />
+                      <span className="text-xs text-gray-500">Vista previa del logo</span>
+                    </div>
+                  )}
+                </div>
+                <button
+                  disabled={guardandoConfig}
+                  onClick={async () => {
+                    const uid = auth.currentUser?.uid;
+                    if (!uid) return;
+                    setGuardandoConfig(true);
+                    await updateDoc(doc(db, "empresas", uid), {
+                      nombrePersonalizado: nombreEmpresaEdit,
+                      logoUrl,
+                    });
+                    setEmpresa((prev) => prev ? { ...prev, nombrePersonalizado: nombreEmpresaEdit, logoUrl } : prev);
+                    setGuardandoConfig(false);
+                    alert("¡Cambios guardados!");
+                  }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold text-sm transition-colors disabled:opacity-60"
+                >
+                  {guardandoConfig ? "Guardando..." : "Guardar personalización"}
+                </button>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
     </div>

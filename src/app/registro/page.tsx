@@ -12,6 +12,7 @@ function RegistroForm() {
   const [nombre, setNombre] = useState("");
   const [empresa, setEmpresa] = useState("");
   const [email, setEmail] = useState("");
+  const [telefono, setTelefono] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,6 +24,7 @@ function RegistroForm() {
     await setDoc(doc(db, "empresas", uid), {
       nombre: empresa || nombreUsuario,
       email: emailUsuario,
+      telefono,
       plan,
       creadoEn: new Date().toISOString(),
       empleados: [],
@@ -31,6 +33,7 @@ function RegistroForm() {
 
   const registroEmail = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
+    if (!telefono.trim()) { setError("El teléfono es obligatorio"); return; }
     setLoading(true);
     setError("");
     try {
@@ -50,6 +53,7 @@ function RegistroForm() {
   };
 
   const registroGoogle = async () => {
+    if (!telefono.trim()) { setError("Introduce tu teléfono antes de continuar"); return; }
     setLoading(true);
     setError("");
     try {
@@ -76,6 +80,18 @@ function RegistroForm() {
           </p>
         </div>
 
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono <span className="text-red-400">*</span></label>
+          <input
+            type="tel"
+            value={telefono}
+            onChange={(e) => setTelefono(e.target.value)}
+            required
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F] transition-colors"
+            placeholder="+34 600 000 000"
+          />
+        </div>
+
         <button
           onClick={registroGoogle}
           disabled={loading}
@@ -94,57 +110,33 @@ function RegistroForm() {
         <form onSubmit={registroEmail} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Tu nombre</label>
-            <input
-              type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              required
+            <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} required
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F] transition-colors"
-              placeholder="Juan García"
-            />
+              placeholder="Juan García" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de tu empresa</label>
-            <input
-              type="text"
-              value={empresa}
-              onChange={(e) => setEmpresa(e.target.value)}
-              required
+            <input type="text" value={empresa} onChange={(e) => setEmpresa(e.target.value)} required
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F] transition-colors"
-              placeholder="Mi Empresa S.L."
-            />
+              placeholder="Mi Empresa S.L." />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F] transition-colors"
-              placeholder="tu@empresa.com"
-            />
+              placeholder="tu@empresa.com" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F] transition-colors"
-              placeholder="Mínimo 6 caracteres"
-            />
+              placeholder="Mínimo 6 caracteres" />
           </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[#2ECC8F] hover:bg-[#25a872] text-white py-3 rounded-xl font-semibold transition-colors disabled:opacity-60"
-          >
+          <button type="submit" disabled={loading}
+            className="w-full bg-[#2ECC8F] hover:bg-[#25a872] text-white py-3 rounded-xl font-semibold transition-colors disabled:opacity-60">
             {loading ? "Creando cuenta..." : "Crear cuenta y continuar"}
           </button>
         </form>

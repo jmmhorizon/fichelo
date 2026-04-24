@@ -39,14 +39,15 @@ const planes = [
   {
     nombre: "Empresarial",
     precio: "89,90",
-    descripcion: "Para grandes empresas",
-    empleados: "Empleados ilimitados",
+    descripcion: "Para empresas medianas y grandes",
+    empleados: "Hasta 200 empleados",
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_EMPRESARIAL,
     caracteristicas: [
       "Todo lo del plan Pro",
-      "Logo personalizado de tu empresa",
-      "API para integrar con otros sistemas",
-      "Soporte telefónico",
+      "Hasta 200 empleados",
+      "Tipos de empleo y turnos por sector",
+      "Logo y nombre de empresa personalizado",
+      "Soporte telefónico prioritario",
       "Gestor de cuenta dedicado",
     ],
     destacado: false,
@@ -62,7 +63,7 @@ export default function Pricing() {
           <p className="text-gray-500 text-lg">7 días gratis sin necesidad de comprometerte</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-8 mb-10">
           {planes.map((plan) => (
             <div
               key={plan.nombre}
@@ -110,6 +111,20 @@ export default function Pricing() {
               </Link>
             </div>
           ))}
+        </div>
+
+        {/* Contacto para más de 200 */}
+        <div className="bg-[#1B2E4B] rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 text-white">
+          <div>
+            <h3 className="text-xl font-bold mb-1">¿Más de 200 empleados?</h3>
+            <p className="text-gray-300 text-sm">Tenemos un plan corporativo adaptado a tu empresa. Cuéntanos lo que necesitas.</p>
+          </div>
+          <a
+            href="mailto:fichelo@fichelo.es?subject=Plan corporativo +200 empleados"
+            className="shrink-0 bg-[#2ECC8F] hover:bg-[#25a872] text-white px-8 py-3 rounded-full font-bold transition-colors whitespace-nowrap"
+          >
+            Hablemos → fichelo@fichelo.es
+          </a>
         </div>
       </div>
     </section>

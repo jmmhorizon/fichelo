@@ -144,10 +144,10 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
           <Image src="/logo.png" alt="Fichelo" width={100} height={32} className="h-8 w-auto brightness-200" />
           <p className="text-sm">© 2026 Fichelo.es · Todos los derechos reservados</p>
-          <div className="flex gap-6 text-sm">
+          <div className="flex flex-col md:flex-row gap-3 md:gap-6 text-sm items-center">
+            <a href="mailto:fichelo@fichelo.es" className="hover:text-white transition-colors text-[#2ECC8F]">fichelo@fichelo.es</a>
             <Link href="/privacidad" className="hover:text-white transition-colors">Privacidad</Link>
             <Link href="/terminos" className="hover:text-white transition-colors">Términos</Link>
-            <Link href="/contacto" className="hover:text-white transition-colors">Contacto</Link>
           </div>
         </div>
       </footer>
