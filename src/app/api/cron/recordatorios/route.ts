@@ -101,11 +101,10 @@ export async function GET(req: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://fichelo.es";
 
   const now = new Date();
-  const reminderDate = new Date(now.getTime() + 10 * 60 * 1000);
-  const { h: rH, m: rM, totalMin: rMin } = getMadridHM(reminderDate);
-  const reminderHora = `${String(rH).padStart(2, "0")}:${String(rM).padStart(2, "0")}`;
-  const dayIdx  = getMadridWeekday(reminderDate);
-  const semanaKey = getSemanaKey(reminderDate);
+  const { totalMin: nowMin } = getMadridHM(now);
+  const reminderHora = new Intl.DateTimeFormat("es-ES", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit", hour12: false }).format(now);
+  const dayIdx   = getMadridWeekday(now);
+  const semanaKey = getSemanaKey(now);
 
   let token: string;
   try {
@@ -128,7 +127,9 @@ export async function GET(req: NextRequest) {
     if (!turno || turno.libre || !turno.inicio) continue;
 
     const [th, tm] = (turno.inicio as string).split(":").map(Number);
-    if (Math.abs(th * 60 + tm - rMin) > 3) continue;
+    let minutosRestantes = th * 60 + tm - nowMin;
+    if (minutosRestantes < 0) minutosRestantes += 1440; // turno al día siguiente (ej. medianoche)
+    if (minutosRestantes < 5 || minutosRestantes > 35) continue;
 
     const recordKey = `${emp._id}_${semanaKey}_${dayIdx}_${(turno.inicio as string).replace(":", "")}`;
     const yaEnviado = await fsGet(token, `recordatoriosEnviados/${recordKey}`);
@@ -146,7 +147,7 @@ export async function GET(req: NextRequest) {
             </div>
             <div style="padding: 32px;">
               <p style="color: #6b7280; font-size: 14px; margin: 0 0 8px;">Hola, <strong>${emp.nombre}</strong> 👋</p>
-              <h1 style="color: #1B2E4B; font-size: 22px; font-weight: 800; margin: 0 0 8px;">Tu turno empieza en 10 minutos</h1>
+              <h1 style="color: #1B2E4B; font-size: 22px; font-weight: 800; margin: 0 0 8px;">Tu turno empieza en ${minutosRestantes} minutos</h1>
               <div style="background: #f0fdf4; border: 2px solid #2ECC8F; border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;">
                 <p style="color: #6b7280; font-size: 13px; margin: 0 0 4px;">Hora de entrada</p>
                 <p style="color: #1B2E4B; font-size: 36px; font-weight: 900; margin: 0; letter-spacing: -1px;">${turno.inicio}</p>
