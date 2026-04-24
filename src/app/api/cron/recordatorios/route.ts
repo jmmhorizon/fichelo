@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 
 const PROJECT_ID = "fichelo";
-const API_KEY    = process.env.NEXT_PUBLIC_FIREBASE_API_KEY!;
+const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY!;
 
-// Convierte un campo Firestore REST a valor JS
 function parseField(field: Record<string, unknown>): unknown {
   if ("stringValue"  in field) return field.stringValue;
   if ("integerValue" in field) return parseInt(field.integerValue as string);
@@ -69,12 +68,11 @@ async function fsSet(token: string, path: string, data: Record<string, unknown>)
   );
 }
 
-function getMadridHM(date: Date = new Date()): { h: number; m: number; totalMin: number } {
-  const fmt = new Intl.DateTimeFormat("es-ES", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit", hour12: false });
-  const p = Object.fromEntries(fmt.formatToParts(date).map((x) => [x.type, x.value]));
-  const h = parseInt(p.hour === "24" ? "0" : p.hour);
-  const m = parseInt(p.minute);
-  return { h, m, totalMin: h * 60 + m };
+function getMadridDate(date: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Madrid",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(date);
 }
 
 function getMadridWeekday(date: Date = new Date()): number {
@@ -91,9 +89,23 @@ function getSemanaKey(date: Date = new Date()): string {
   return `${new Date(localStr + "T12:00:00Z").getFullYear()}W${String(week).padStart(2, "0")}`;
 }
 
+// Converts a Madrid local time (HH:MM on madridDateStr) to a UTC Date
+function madridToUtc(madridDateStr: string, h: number, m: number): Date {
+  // Get the Madrid UTC offset by comparing noon UTC with its Madrid representation
+  const noon = new Date(`${madridDateStr}T12:00:00Z`);
+  const madridNoonHour = parseInt(
+    new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Madrid", hour: "numeric", hour12: false }).format(noon)
+  );
+  const offsetHours = madridNoonHour - 12; // e.g. 2 in summer (UTC+2), 1 in winter (UTC+1)
+  const shiftAsIfUtc = new Date(`${madridDateStr}T${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:00Z`);
+  return new Date(shiftAsIfUtc.getTime() - offsetHours * 3600000);
+}
+
 export async function GET(req: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET;
   const secret = req.nextUrl.searchParams.get("secret");
-  if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+  const authHeader = req.headers.get("authorization");
+  if (cronSecret && secret !== cronSecret && authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -101,10 +113,9 @@ export async function GET(req: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://fichelo.es";
 
   const now = new Date();
-  const { totalMin: nowMin } = getMadridHM(now);
-  const reminderHora = new Intl.DateTimeFormat("es-ES", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit", hour12: false }).format(now);
-  const dayIdx   = getMadridWeekday(now);
+  const dayIdx = getMadridWeekday(now);
   const semanaKey = getSemanaKey(now);
+  const madridDateStr = getMadridDate(now);
 
   let token: string;
   try {
@@ -114,7 +125,8 @@ export async function GET(req: NextRequest) {
   }
 
   const empleados = await fsList(token, "empleados");
-  let enviados = 0;
+  let programados = 0;
+  const errores: string[] = [];
 
   for (const emp of empleados) {
     if (!emp.email || !emp.empresaId) continue;
@@ -126,57 +138,65 @@ export async function GET(req: NextRequest) {
     const turno = turnosDoc[`${emp._id}_${dayIdx}`] as Record<string, unknown> | undefined;
     if (!turno || turno.libre || !turno.inicio) continue;
 
-    const [th, tm] = (turno.inicio as string).split(":").map(Number);
-    let minutosRestantes = th * 60 + tm - nowMin;
-    if (minutosRestantes < 0) minutosRestantes += 1440; // turno al día siguiente (ej. medianoche)
-    if (minutosRestantes < 5 || minutosRestantes > 35) continue;
-
     const recordKey = `${emp._id}_${semanaKey}_${dayIdx}_${(turno.inicio as string).replace(":", "")}`;
     const yaEnviado = await fsGet(token, `recordatoriosEnviados/${recordKey}`);
     if (yaEnviado) continue;
 
-    await resend.emails.send({
-      from: process.env.RESEND_FROM ?? "Fichelo <onboarding@resend.dev>",
-      to: emp.email as string,
-      subject: `⏰ Recuerda fichar — empieza a las ${turno.inicio}`,
-      html: `
-        <div style="font-family: Inter, Arial, sans-serif; max-width: 520px; margin: 0 auto; background: #f9fafb; padding: 32px 16px;">
-          <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
-            <div style="background: #1B2E4B; padding: 24px 32px;">
-              <span style="color: white; font-size: 20px; font-weight: 800;">fichelo<span style="color: #2ECC8F;">.es</span></span>
-            </div>
-            <div style="padding: 32px;">
-              <p style="color: #6b7280; font-size: 14px; margin: 0 0 8px;">Hola, <strong>${emp.nombre}</strong> 👋</p>
-              <h1 style="color: #1B2E4B; font-size: 22px; font-weight: 800; margin: 0 0 8px;">Tu turno empieza en ${minutosRestantes} minutos</h1>
-              <div style="background: #f0fdf4; border: 2px solid #2ECC8F; border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;">
-                <p style="color: #6b7280; font-size: 13px; margin: 0 0 4px;">Hora de entrada</p>
-                <p style="color: #1B2E4B; font-size: 36px; font-weight: 900; margin: 0; letter-spacing: -1px;">${turno.inicio}</p>
-                <p style="color: #6b7280; font-size: 13px; margin: 4px 0 0;">${emp.empresaNombre ?? ""}</p>
+    const [th, tm] = (turno.inicio as string).split(":").map(Number);
+    const shiftUtc = madridToUtc(madridDateStr, th, tm);
+    const scheduledAt = new Date(shiftUtc.getTime() - 15 * 60000); // 15 min before shift
+
+    // Skip if reminder time already passed (or less than 2 min away — Resend minimum)
+    if (scheduledAt.getTime() - now.getTime() < 2 * 60000) continue;
+
+    try {
+      await resend.emails.send({
+        from: process.env.RESEND_FROM ?? "Fichelo <onboarding@resend.dev>",
+        to: emp.email as string,
+        subject: `⏰ Recuerda fichar — empieza a las ${turno.inicio}`,
+        scheduledAt: scheduledAt.toISOString(),
+        html: `
+          <div style="font-family: Inter, Arial, sans-serif; max-width: 520px; margin: 0 auto; background: #f9fafb; padding: 32px 16px;">
+            <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+              <div style="background: #1B2E4B; padding: 24px 32px;">
+                <span style="color: white; font-size: 20px; font-weight: 800;">fichelo<span style="color: #2ECC8F;">.es</span></span>
               </div>
-              <a href="${appUrl}/fichar"
-                style="display: block; background: #2ECC8F; color: white; text-align: center; padding: 16px; border-radius: 12px; font-weight: 700; font-size: 16px; text-decoration: none;">
-                📍 Abrir app y fichar
-              </a>
-            </div>
-            <div style="padding: 16px 32px; border-top: 1px solid #f3f4f6; text-align: center;">
-              <p style="color: #9ca3af; font-size: 12px; margin: 0;">Fichelo.es · ${reminderHora} · Recordatorio automático</p>
+              <div style="padding: 32px;">
+                <p style="color: #6b7280; font-size: 14px; margin: 0 0 8px;">Hola, <strong>${emp.nombre}</strong> 👋</p>
+                <h1 style="color: #1B2E4B; font-size: 22px; font-weight: 800; margin: 0 0 8px;">Tu turno empieza en 15 minutos</h1>
+                <div style="background: #f0fdf4; border: 2px solid #2ECC8F; border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;">
+                  <p style="color: #6b7280; font-size: 13px; margin: 0 0 4px;">Hora de entrada</p>
+                  <p style="color: #1B2E4B; font-size: 36px; font-weight: 900; margin: 0; letter-spacing: -1px;">${turno.inicio}</p>
+                  <p style="color: #6b7280; font-size: 13px; margin: 4px 0 0;">${emp.empresaNombre ?? ""}</p>
+                </div>
+                <a href="${appUrl}/fichar"
+                  style="display: block; background: #2ECC8F; color: white; text-align: center; padding: 16px; border-radius: 12px; font-weight: 700; font-size: 16px; text-decoration: none;">
+                  📍 Abrir app y fichar
+                </a>
+              </div>
+              <div style="padding: 16px 32px; border-top: 1px solid #f3f4f6; text-align: center;">
+                <p style="color: #9ca3af; font-size: 12px; margin: 0;">Fichelo.es · Recordatorio automático</p>
+              </div>
             </div>
           </div>
-        </div>
-      `,
-    });
+        `,
+      });
 
-    await fsSet(token, `recordatoriosEnviados/${recordKey}`, {
-      empleadoId: emp._id as string,
-      email: emp.email as string,
-      turnoInicio: turno.inicio as string,
-      semanaKey,
-      dayIdx,
-      enviadoEn: now.toISOString(),
-    });
+      await fsSet(token, `recordatoriosEnviados/${recordKey}`, {
+        empleadoId: emp._id as string,
+        email: emp.email as string,
+        turnoInicio: turno.inicio as string,
+        semanaKey,
+        dayIdx,
+        programadoEn: now.toISOString(),
+        scheduledAt: scheduledAt.toISOString(),
+      });
 
-    enviados++;
+      programados++;
+    } catch (err) {
+      errores.push(`${emp.email}: ${String(err)}`);
+    }
   }
 
-  return NextResponse.json({ ok: true, enviados, checkedAt: now.toISOString() });
+  return NextResponse.json({ ok: true, programados, errores, checkedAt: now.toISOString() });
 }

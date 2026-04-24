@@ -70,7 +70,7 @@ function getMonday(date: Date): Date {
   return d;
 }
 
-interface Empleado { id: string; nombre: string; email: string; sector?: string; rol?: string; }
+interface Empleado { id: string; nombre: string; email: string; sector?: string; rol?: string; empresaNombre?: string; }
 interface Turno { inicio?: string; fin?: string; libre?: boolean; }
 type Semana = Record<string, Turno>;
 
@@ -92,6 +92,7 @@ export default function TurnosPage() {
   const [inputInicio, setInputInicio]     = useState("09:00");
   const [inputFin, setInputFin]           = useState("17:00");
   const [empresaSector, setEmpresaSector] = useState("otro");
+  const [empresaNombre, setEmpresaNombre] = useState("");
   const [filtro, setFiltro]               = useState<"asignado" | "libre" | "vacio" | null>(null);
   const router = useRouter();
 
@@ -108,8 +109,9 @@ export default function TurnosPage() {
         ]);
         setEmpleados(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Empleado)));
         if (empDoc.exists()) {
-          const d = empDoc.data() as { sector?: string };
+          const d = empDoc.data() as { sector?: string; nombre?: string; nombrePersonalizado?: string };
           setEmpresaSector(d.sector ?? "otro");
+          setEmpresaNombre(d.nombrePersonalizado ?? d.nombre ?? "");
         }
       } finally {
         setLoading(false);
@@ -125,13 +127,36 @@ export default function TurnosPage() {
     });
   }, [uid, semanaKey]);
 
-  const guardarTurno = async (clave: string, turno: Turno | null) => {
+  const guardarTurno = async (clave: string, turno: Turno | null, emp?: Empleado, dayIdx?: number) => {
     const nuevos = { ...turnos };
     if (turno === null) delete nuevos[clave];
     else nuevos[clave] = turno;
     setTurnos(nuevos);
     await setDoc(doc(db, "turnos", `${uid}_${semanaKey}`), nuevos);
     setEditando(null);
+
+    // Programar recordatorio si hay hora de inicio y tenemos datos del empleado
+    if (turno?.inicio && emp && dayIdx !== undefined) {
+      try {
+        const res = await fetch("/api/programar-recordatorio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: emp.email,
+            nombre: emp.nombre,
+            empresaNombre,
+            semanaKey,
+            dayIdx,
+            turnoInicio: turno.inicio,
+            lunesTimestamp: lunes.getTime(),
+          }),
+        });
+        const json = await res.json();
+        console.log("[recordatorio]", json);
+      } catch (err) {
+        console.error("[recordatorio] error:", err);
+      }
+    }
   };
 
   const navSemana = (delta: number) => {
@@ -296,7 +321,7 @@ export default function TurnosPage() {
                                     className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-xs text-center" />
 
                                   <div className="flex gap-1 mt-1 w-full">
-                                    <button onClick={() => guardarTurno(clave, { inicio: inputInicio, fin: inputFin })}
+                                    <button onClick={() => guardarTurno(clave, { inicio: inputInicio, fin: inputFin }, emp, dayIdx)}
                                       className="flex-1 text-xs bg-[#2ECC8F] hover:bg-[#25a872] text-white py-1.5 rounded-lg font-bold transition-colors">
                                       Guardar
                                     </button>

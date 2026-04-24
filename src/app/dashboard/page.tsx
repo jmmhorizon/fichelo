@@ -1,9 +1,8 @@
 "use client";
 import { useEffect, useState, Suspense } from "react";
-import { auth, db, storage } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, query, where, Timestamp, doc, getDoc, getDocs, limit, updateDoc } from "firebase/firestore";
-import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -233,10 +232,10 @@ function DashboardContent() {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) { router.push("/login"); return; }
       try {
-        const [empresaDoc, fichajesSnap, empleadosSnap] = await Promise.all([
+        const [empresaDoc, fichajesSnap, empleadosRes] = await Promise.all([
           getDoc(doc(db, "empresas", user.uid)),
           getDocs(query(collection(db, "fichajes"), where("empresaId", "==", user.uid), limit(200))),
-          getDocs(query(collection(db, "empleados"), where("empresaId", "==", user.uid))),
+          fetch(`/api/empresa/empleados?empresaId=${user.uid}`),
         ]);
 
         if (empresaDoc.exists()) {
@@ -248,7 +247,10 @@ function DashboardContent() {
           setModoDesplazamiento(emp.modoDesplazamiento ?? false);
           setUbicaciones(emp.ubicaciones ?? []);
         }
-        setEmpleadosData(empleadosSnap.docs.map((d) => ({ id: d.id, ...d.data() } as EmpleadoData)));
+        if (empleadosRes.ok) {
+          const empleadosJson = await empleadosRes.json() as EmpleadoData[];
+          setEmpleadosData(empleadosJson);
+        }
 
         const todos = fichajesSnap.docs
           .map((d) => ({ id: d.id, ...d.data() } as Fichaje))
@@ -383,7 +385,12 @@ function DashboardContent() {
       {/* Navbar */}
       <nav className="bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Image src="/logo.png" alt="Fichelo" width={160} height={52} className="h-12 w-auto" />
+          {plan === "empresarial" && logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt="Logo empresa" className="h-12 w-auto object-contain max-w-[160px]" />
+          ) : (
+            <Image src="/logo.png" alt="Fichelo" width={160} height={52} className="h-12 w-auto" />
+          )}
           <span className={`text-xs font-bold px-3 py-1 rounded-full ${
             plan === "empresarial" ? "bg-purple-50 text-purple-500" :
             plan === "pro" ? "bg-[#2ECC8F]/10 text-[#2ECC8F]" : "bg-gray-100 text-gray-500"
@@ -413,9 +420,9 @@ function DashboardContent() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { icon: <Users size={16} className="text-[#2ECC8F]" />, label: "Empleados", valor: `${empresa?.empleados?.length || 0}/${planInfo.limite}` },
+            { icon: <Users size={16} className="text-[#2ECC8F]" />, label: "Empleados", valor: `${esDemo ? (empresa?.empleados?.length ?? 0) : empleadosData.length}/${planInfo.limite}` },
             { icon: <CheckCircle size={16} className="text-[#2ECC8F]" />, label: "Fichados hoy", valor: fichajes.filter((f) => f.tipo === "entrada").length },
-            { icon: <XCircle size={16} className="text-red-300" />, label: "Sin fichar", valor: Math.max(0, (empresa?.empleados?.length || 0) - fichajes.filter((f) => f.tipo === "entrada").length) },
+            { icon: <XCircle size={16} className="text-red-300" />, label: "Sin fichar", valor: Math.max(0, (esDemo ? (empresa?.empleados?.length ?? 0) : empleadosData.length) - fichajes.filter((f) => f.tipo === "entrada").length) },
             { icon: <MapPin size={16} className="text-[#2ECC8F]" />, label: "Fuera ubicación", valor: fichajes.filter((f) => !f.dentro).length },
           ].map((s) => (
             <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm">
@@ -475,7 +482,7 @@ function DashboardContent() {
                       {"lat" in f && (f as Fichaje & { lat?: number; lng?: number }).lat ? (
                         <a href={`https://www.google.com/maps?q=${(f as Fichaje & { lat?: number }).lat},${(f as Fichaje & { lng?: number }).lng}`}
                           target="_blank" rel="noopener noreferrer"
-                          className="text-xs text-gray-400 hover:text-[#2ECC8F] transition-colors underline hidden md:block">
+                          className="text-xs text-gray-400 hover:text-[#2ECC8F] transition-colors underline">
                           Ver mapa
                         </a>
                       ) : null}
@@ -529,7 +536,7 @@ function DashboardContent() {
           <div className="bg-white rounded-2xl shadow-sm">
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <h2 className="font-bold text-[#1B2E4B]">
-                Empleados ({empresa?.empleados?.length || 0}/{planInfo.limite})
+                Empleados ({esDemo ? (empresa?.empleados?.length ?? 0) : empleadosData.length}/{planInfo.limite})
               </h2>
               {!esDemo && (
                 <div className="flex gap-2">
@@ -542,25 +549,43 @@ function DashboardContent() {
                 </div>
               )}
             </div>
-            {(empresa?.empleados?.length || 0) === 0 ? (
+            {(esDemo ? (empresa?.empleados?.length ?? 0) : empleadosData.length) === 0 ? (
               <div className="p-12 text-center text-gray-400">
                 <Users size={36} className="mx-auto mb-3 opacity-20" /><p>Aún no tienes empleados</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-50">
-                {empresa?.empleados?.map((e, i) => (
-                  <div key={i} className="flex items-center justify-between px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-[#1B2E4B]/10 rounded-full flex items-center justify-center font-bold text-sm text-[#1B2E4B]">
-                        {String(e).charAt(0).toUpperCase()}
+                {esDemo
+                  ? empresa?.empleados?.map((nombre, i) => (
+                      <div key={i} className="flex items-center justify-between px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-[#1B2E4B]/10 rounded-full flex items-center justify-center font-bold text-sm text-[#1B2E4B]">
+                            {String(nombre).charAt(0).toUpperCase()}
+                          </div>
+                          <p className="font-medium text-[#1B2E4B] text-sm">{nombre}</p>
+                        </div>
+                        <span className="text-xs text-[#2ECC8F] font-medium flex items-center gap-1">
+                          <CheckCircle size={12} /> Activo
+                        </span>
                       </div>
-                      <p className="font-medium text-[#1B2E4B] text-sm">{e}</p>
-                    </div>
-                    <span className="text-xs text-[#2ECC8F] font-medium flex items-center gap-1">
-                      <CheckCircle size={12} /> Activo
-                    </span>
-                  </div>
-                ))}
+                    ))
+                  : empleadosData.map((e) => (
+                      <div key={e.id} className="flex items-center justify-between px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-[#1B2E4B]/10 rounded-full flex items-center justify-center font-bold text-sm text-[#1B2E4B]">
+                            {e.nombre.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium text-[#1B2E4B] text-sm">{e.nombre}</p>
+                            <p className="text-xs text-gray-400">{e.email}</p>
+                          </div>
+                        </div>
+                        <span className="text-xs text-[#2ECC8F] font-medium flex items-center gap-1">
+                          <CheckCircle size={12} /> Activo
+                        </span>
+                      </div>
+                    ))
+                }
               </div>
             )}
           </div>
@@ -860,6 +885,26 @@ function DashboardContent() {
 
             {modoDesplazamiento && (
               <>
+                {/* Empleados que usarán este modo */}
+                {empleadosData.length > 0 && (
+                  <div className="mb-5">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Empleados en modo desplazamiento</p>
+                    <div className="flex flex-col gap-1">
+                      {empleadosData.map((e) => (
+                        <div key={e.id} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
+                          <div className="w-7 h-7 bg-[#1B2E4B]/10 rounded-full flex items-center justify-center font-bold text-xs text-[#1B2E4B] shrink-0">
+                            {e.nombre.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-[#1B2E4B] truncate">{e.nombre}</p>
+                            <p className="text-xs text-gray-400 truncate">{e.email}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Lista de ubicaciones guardadas */}
                 {ubicaciones.length > 0 && (
                   <div className="flex flex-col gap-2 mb-5">
@@ -1002,9 +1047,23 @@ function DashboardContent() {
                     try {
                       let urlFinal = logoUrl;
                       if (logoFile) {
-                        const r = storageRef(storage, `logos/${uid}`);
-                        await uploadBytes(r, logoFile);
-                        urlFinal = await getDownloadURL(r);
+                        // Comprimir y convertir a base64 (máx ~200KB para no superar límite de Firestore)
+                        urlFinal = await new Promise<string>((resolve, reject) => {
+                          const img = new window.Image();
+                          const objectUrl = URL.createObjectURL(logoFile);
+                          img.onload = () => {
+                            const MAX = 400;
+                            const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+                            const canvas = document.createElement("canvas");
+                            canvas.width  = Math.round(img.width  * ratio);
+                            canvas.height = Math.round(img.height * ratio);
+                            canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            URL.revokeObjectURL(objectUrl);
+                            resolve(canvas.toDataURL("image/jpeg", 0.75));
+                          };
+                          img.onerror = reject;
+                          img.src = objectUrl;
+                        });
                         setLogoUrl(urlFinal);
                         setLogoFile(null);
                         setLogoPreview("");
@@ -1015,8 +1074,8 @@ function DashboardContent() {
                       });
                       setEmpresa((prev) => prev ? { ...prev, nombrePersonalizado: nombreEmpresaEdit, logoUrl: urlFinal } : prev);
                       alert("¡Cambios guardados!");
-                    } catch {
-                      alert("Error al subir el logo. Comprueba las reglas de Firebase Storage.");
+                    } catch (err) {
+                      alert("Error al guardar: " + String(err));
                     } finally {
                       setGuardandoConfig(false);
                     }
