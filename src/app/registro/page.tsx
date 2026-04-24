@@ -40,7 +40,7 @@ function RegistroForm() {
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(user, { displayName: nombre });
       await guardarEmpresa(user.uid, nombre, email);
-      router.push("/checkout?plan=" + plan);
+      router.push("/dashboard");
     } catch (err: unknown) {
       if (err instanceof Error && err.message.includes("email-already-in-use")) {
         setError("Ya existe una cuenta con este email");
@@ -59,7 +59,7 @@ function RegistroForm() {
     try {
       const { user } = await signInWithPopup(auth, googleProvider);
       await guardarEmpresa(user.uid, user.displayName || "", user.email || "");
-      router.push("/checkout?plan=" + plan);
+      router.push("/dashboard");
     } catch {
       setError("Error al registrarse con Google");
     } finally {

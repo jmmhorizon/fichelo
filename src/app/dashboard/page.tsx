@@ -20,7 +20,8 @@ interface Empresa {
   nombre: string;
   plan: string;
   empleados: string[];
-  activo: boolean;
+  activo?: boolean;
+  creadoEn?: string;
   lat?: number;
   lng?: number;
   direccion?: string;
@@ -202,6 +203,7 @@ function DashboardContent() {
   const [ausenciaHasta, setAusenciaHasta] = useState("");
   const [ausencias, setAusencias] = useState<{ empleado: string; tipo: string; desde: string; hasta: string }[]>([]);
   const [empleadosData, setEmpleadosData] = useState<EmpleadoData[]>([]);
+  const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
   const [logoUrl, setLogoUrl] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState("");
@@ -246,6 +248,13 @@ function DashboardContent() {
           setSectorEmpresa(emp.sector ?? "otro");
           setModoDesplazamiento(emp.modoDesplazamiento ?? false);
           setUbicaciones(emp.ubicaciones ?? []);
+          if (!emp.activo) {
+            const created = emp.creadoEn ? new Date(emp.creadoEn) : null;
+            const days = created
+              ? Math.max(0, 7 - Math.floor((Date.now() - created.getTime()) / 86400000))
+              : 7;
+            setTrialDaysLeft(days);
+          }
         }
         if (empleadosRes.ok) {
           const empleadosJson = await empleadosRes.json() as EmpleadoData[];
@@ -379,6 +388,41 @@ function DashboardContent() {
         <div className="bg-amber-400 text-amber-900 text-center text-sm py-2 font-semibold">
           Modo demo — Plan {planInfo.label} · Datos de ejemplo · {" "}
           <Link href="/registro" className="underline">Crear cuenta real</Link>
+        </div>
+      )}
+
+      {/* Banner trial activo */}
+      {!esDemo && trialDaysLeft !== null && trialDaysLeft > 0 && (
+        <div className="bg-amber-400 text-amber-900 text-center text-sm py-2 font-semibold">
+          Período de prueba — te quedan <strong>{trialDaysLeft} día{trialDaysLeft !== 1 ? "s" : ""}</strong> gratis ·{" "}
+          <Link href={`/checkout?plan=${plan}`} className="underline">Activar plan ahora</Link>
+        </div>
+      )}
+
+      {/* Overlay trial expirado */}
+      {!esDemo && trialDaysLeft === 0 && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+            <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+              <Lock size={28} className="text-red-400" />
+            </div>
+            <h2 className="text-xl font-bold text-[#1B2E4B] mb-2">Tu prueba gratuita ha terminado</h2>
+            <p className="text-gray-500 text-sm mb-6">
+              Activa tu plan para seguir usando Fichelo y no perder tus datos.
+            </p>
+            <Link
+              href={`/checkout?plan=${plan}`}
+              className="block bg-[#2ECC8F] hover:bg-[#25a872] text-white font-bold py-4 rounded-xl transition-colors text-sm mb-3"
+            >
+              Activar plan {planInfo.label} — {planInfo.precio}
+            </Link>
+            <button
+              onClick={logout}
+              className="text-gray-400 text-xs hover:text-gray-600 transition-colors"
+            >
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       )}
 
