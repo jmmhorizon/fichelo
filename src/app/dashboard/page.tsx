@@ -28,6 +28,8 @@ interface Empresa {
   logoUrl?: string;
   nombrePersonalizado?: string;
   sector?: string;
+  modoDesplazamiento?: boolean;
+  ubicaciones?: Ubicacion[];
 }
 
 interface EmpleadoData {
@@ -36,6 +38,14 @@ interface EmpleadoData {
   email: string;
   sector?: string;
   rol?: string;
+}
+
+interface Ubicacion {
+  id: string;
+  nombre: string;
+  direccion: string;
+  lat: number;
+  lng: number;
 }
 
 const PLANES: Record<string, { label: string; limite: number; precio: string; priceId: string }> = {
@@ -200,6 +210,12 @@ function DashboardContent() {
   const [guardandoConfig, setGuardandoConfig] = useState(false);
   const [sectorEmpresa, setSectorEmpresa] = useState("otro");
   const [guardandoSector, setGuardandoSector] = useState(false);
+  const [modoDesplazamiento, setModoDesplazamiento] = useState(false);
+  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
+  const [nuevoNombreUbic, setNuevoNombreUbic] = useState("");
+  const [nuevaDireccionUbic, setNuevaDireccionUbic] = useState("");
+  const [buscandoUbic, setBuscandoUbic] = useState(false);
+  const [resultadoUbic, setResultadoUbic] = useState<{ lat: number; lng: number; display: string } | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const demoParam = searchParams.get("demo");
@@ -229,6 +245,8 @@ function DashboardContent() {
           setLogoUrl(emp.logoUrl ?? "");
           setNombreEmpresaEdit(emp.nombrePersonalizado ?? emp.nombre ?? "");
           setSectorEmpresa(emp.sector ?? "otro");
+          setModoDesplazamiento(emp.modoDesplazamiento ?? false);
+          setUbicaciones(emp.ubicaciones ?? []);
         }
         setEmpleadosData(empleadosSnap.docs.map((d) => ({ id: d.id, ...d.data() } as EmpleadoData)));
 
@@ -288,6 +306,44 @@ function DashboardContent() {
     await updateDoc(doc(db, "empresas", uid), { lat, lng, direccion });
     setEmpresa((prev) => prev ? { ...prev, lat, lng, direccion } : prev);
     setResultadoBusqueda(null);
+  };
+
+  const buscarDireccionUbic = async () => {
+    if (!nuevaDireccionUbic.trim()) return;
+    setBuscandoUbic(true); setResultadoUbic(null);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(nuevaDireccionUbic)}&format=json&limit=1`,
+        { headers: { "User-Agent": "Fichelo/1.0 (fichelo.es)" } }
+      );
+      const data = await res.json();
+      if (data.length > 0) setResultadoUbic({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), display: data[0].display_name });
+      else alert("No se encontró esa dirección. Añade la ciudad.");
+    } catch { alert("Error al buscar la dirección."); }
+    finally { setBuscandoUbic(false); }
+  };
+
+  const agregarUbicacion = async () => {
+    if (!resultadoUbic || !nuevoNombreUbic.trim()) return;
+    const uid = auth.currentUser?.uid; if (!uid) return;
+    const nueva: Ubicacion = { id: Date.now().toString(), nombre: nuevoNombreUbic.trim(), direccion: resultadoUbic.display.slice(0, 100), lat: resultadoUbic.lat, lng: resultadoUbic.lng };
+    const nuevas = [...ubicaciones, nueva];
+    await updateDoc(doc(db, "empresas", uid), { ubicaciones: nuevas });
+    setUbicaciones(nuevas); setNuevoNombreUbic(""); setNuevaDireccionUbic(""); setResultadoUbic(null);
+  };
+
+  const eliminarUbicacion = async (id: string) => {
+    const uid = auth.currentUser?.uid; if (!uid) return;
+    const nuevas = ubicaciones.filter((u) => u.id !== id);
+    await updateDoc(doc(db, "empresas", uid), { ubicaciones: nuevas });
+    setUbicaciones(nuevas);
+  };
+
+  const toggleModoDesplazamiento = async () => {
+    const uid = auth.currentUser?.uid; if (!uid) return;
+    const nuevo = !modoDesplazamiento;
+    await updateDoc(doc(db, "empresas", uid), { modoDesplazamiento: nuevo });
+    setModoDesplazamiento(nuevo);
   };
 
   const exportarCSV = () => {
@@ -782,6 +838,91 @@ function DashboardContent() {
               {guardandoSector ? "Guardando..." : "Guardar tipo de negocio"}
             </button>
           </div>}
+
+          {/* Modo desplazamiento */}
+          <div className="bg-white rounded-2xl shadow-sm p-8 max-w-xl mt-6">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <span className="text-lg">🚗</span>
+                <h2 className="font-bold text-[#1B2E4B]">Modo desplazamiento</h2>
+              </div>
+              <button
+                onClick={toggleModoDesplazamiento}
+                className={`relative w-12 h-6 rounded-full transition-colors ${modoDesplazamiento ? "bg-[#2ECC8F]" : "bg-gray-200"}`}
+              >
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${modoDesplazamiento ? "left-6" : "left-0.5"}`} />
+              </button>
+            </div>
+            <p className="text-gray-500 text-sm mb-5">
+              Actívalo si tus empleados trabajan en distintas ubicaciones (limpieza, obras, visitas a clientes…).
+              Cada empleado elige dónde trabaja al fichar y el GPS se verifica en ese sitio.
+            </p>
+
+            {modoDesplazamiento && (
+              <>
+                {/* Lista de ubicaciones guardadas */}
+                {ubicaciones.length > 0 && (
+                  <div className="flex flex-col gap-2 mb-5">
+                    {ubicaciones.map((u) => (
+                      <div key={u.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <MapPin size={14} className="text-[#2ECC8F] shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-[#1B2E4B]">{u.nombre}</p>
+                            <p className="text-xs text-gray-400 truncate">{u.direccion}</p>
+                          </div>
+                        </div>
+                        <button onClick={() => eliminarUbicacion(u.id)} className="text-xs text-red-400 hover:text-red-500 ml-3 shrink-0">Eliminar</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Formulario para añadir nueva ubicación */}
+                <div className={ubicaciones.length > 0 ? "border-t border-gray-100 pt-5" : ""}>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Añadir ubicación de trabajo</p>
+                  <input
+                    type="text"
+                    value={nuevoNombreUbic}
+                    onChange={(e) => setNuevoNombreUbic(e.target.value)}
+                    placeholder="Nombre del cliente o lugar (ej. Clínica Norte)"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-2 focus:outline-none focus:border-[#2ECC8F] transition-colors"
+                  />
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={nuevaDireccionUbic}
+                      onChange={(e) => setNuevaDireccionUbic(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && buscarDireccionUbic()}
+                      placeholder="Dirección (ej. Calle Alcalá 10, Madrid)"
+                      className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F] transition-colors"
+                    />
+                    <button
+                      onClick={buscarDireccionUbic}
+                      disabled={buscandoUbic || !nuevaDireccionUbic.trim()}
+                      className="flex items-center gap-1 bg-[#1B2E4B] hover:bg-[#243d62] text-white px-4 rounded-xl font-bold text-sm transition-colors disabled:opacity-50"
+                    >
+                      <Navigation size={14} />
+                      {buscandoUbic ? "..." : "Buscar"}
+                    </button>
+                  </div>
+                  {resultadoUbic && (
+                    <div className="border-2 border-[#2ECC8F] rounded-xl p-4">
+                      <p className="text-xs text-gray-500 mb-1">Dirección encontrada:</p>
+                      <p className="text-sm font-medium text-[#1B2E4B] leading-snug mb-3">{resultadoUbic.display}</p>
+                      <button
+                        onClick={agregarUbicacion}
+                        disabled={!nuevoNombreUbic.trim()}
+                        className="w-full bg-[#2ECC8F] hover:bg-[#25a872] disabled:opacity-50 text-white py-2 rounded-xl text-sm font-bold transition-colors"
+                      >
+                        {nuevoNombreUbic.trim() ? `+ Guardar "${nuevoNombreUbic}"` : "Escribe un nombre para guardar"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Personalización empresarial */}
           {plan === "empresarial" && !esDemo && (

@@ -11,6 +11,13 @@ import { MapPin, CheckCircle, XCircle, Clock, Navigation } from "lucide-react";
 
 const RADIO_METROS = 200;
 
+interface Ubicacion { id: string; nombre: string; direccion: string; lat: number; lng: number; }
+interface EmpleadoInfo {
+  nombre: string; empresaId: string; empresaNombre: string; emailJefe: string;
+  empresaLat?: number; empresaLng?: number;
+  modoDesplazamiento?: boolean; ubicaciones?: Ubicacion[];
+}
+
 function calcularDistancia(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371000;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -26,7 +33,8 @@ function FicharContent() {
   const [mensaje, setMensaje]         = useState("");
   const [coords, setCoords]           = useState<{ lat: number; lng: number } | null>(null);
   const [ultimoFichaje, setUltimoFichaje] = useState<string | null>(null);
-  const [empleado, setEmpleado]       = useState<{ nombre: string; empresaId: string; empresaNombre: string; emailJefe: string; empresaLat?: number; empresaLng?: number } | null>(null);
+  const [empleado, setEmpleado]           = useState<EmpleadoInfo | null>(null);
+  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState<Ubicacion | null>(null);
   const [esDemo, setEsDemo]           = useState(false);
   const [inicializado, setInicializado] = useState(false);
   const [autenticado, setAutenticado] = useState(false);
@@ -64,7 +72,13 @@ function FicharContent() {
         const data = empleadoDoc.data();
         const empresaDoc = await getDoc(doc(db, "empresas", data.empresaId));
         const emp = empresaDoc.data();
-        setEmpleado({ nombre: data.nombre, empresaId: data.empresaId, empresaNombre: emp?.nombre ?? "", emailJefe: emp?.email ?? "", empresaLat: emp?.lat, empresaLng: emp?.lng });
+        setEmpleado({
+          nombre: data.nombre, empresaId: data.empresaId,
+          empresaNombre: emp?.nombre ?? "", emailJefe: emp?.email ?? "",
+          empresaLat: emp?.lat, empresaLng: emp?.lng,
+          modoDesplazamiento: emp?.modoDesplazamiento ?? false,
+          ubicaciones: emp?.ubicaciones ?? [],
+        });
 
         const snap = await getDocs(query(collection(db, "fichajes"), where("empleadoId", "==", user.uid), orderBy("hora", "desc"), limit(1)));
         if (!snap.empty) {
@@ -125,9 +139,11 @@ function FicharContent() {
         const user = auth.currentUser;
         if (!user || !empleado) return;
 
+        const checkLat = ubicacionSeleccionada?.lat ?? empleado.empresaLat;
+        const checkLng = ubicacionSeleccionada?.lng ?? empleado.empresaLng;
         let dentro = true;
-        if (empleado.empresaLat && empleado.empresaLng) {
-          dentro = calcularDistancia(lat, lng, empleado.empresaLat, empleado.empresaLng) <= RADIO_METROS;
+        if (checkLat && checkLng) {
+          dentro = calcularDistancia(lat, lng, checkLat, checkLng) <= RADIO_METROS;
         }
 
         const now = Timestamp.now();
@@ -240,17 +256,53 @@ function FicharContent() {
             </a>
           )}
 
-          {(estado === "idle" || estado === "ok" || estado === "fuera") && empleado && (
-            <div className="flex gap-3 mt-2">
-              <button onClick={() => fichar("entrada")}
-                className="flex-1 bg-[#2ECC8F] hover:bg-[#25a872] text-white py-4 rounded-2xl font-bold transition-colors text-sm">
-                ✅ Entrada
-              </button>
-              <button onClick={() => fichar("salida")}
-                className="flex-1 bg-[#1B2E4B] hover:bg-[#243d62] text-white py-4 rounded-2xl font-bold transition-colors text-sm">
-                🚪 Salida
-              </button>
+          {/* Selector de ubicación — modo desplazamiento */}
+          {(estado === "idle" || estado === "ok" || estado === "fuera") && empleado?.modoDesplazamiento && (empleado.ubicaciones?.length ?? 0) > 0 && !ubicacionSeleccionada && (
+            <div className="w-full mt-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 text-left">¿Dónde trabajas hoy?</p>
+              <div className="flex flex-col gap-2">
+                {empleado.ubicaciones!.map((u) => (
+                  <button
+                    key={u.id}
+                    onClick={() => setUbicacionSeleccionada(u)}
+                    className="w-full text-left border-2 border-gray-100 hover:border-[#2ECC8F] rounded-xl px-4 py-3 transition-all group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <MapPin size={14} className="text-gray-300 group-hover:text-[#2ECC8F] transition-colors shrink-0" />
+                      <div>
+                        <p className="font-semibold text-[#1B2E4B] text-sm">{u.nombre}</p>
+                        <p className="text-xs text-gray-400 truncate">{u.direccion}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
+          )}
+
+          {/* Badge de ubicación seleccionada + botones */}
+          {(estado === "idle" || estado === "ok" || estado === "fuera") && empleado && (!empleado.modoDesplazamiento || !empleado.ubicaciones?.length || ubicacionSeleccionada) && (
+            <>
+              {ubicacionSeleccionada && (
+                <div className="w-full bg-[#2ECC8F]/10 border border-[#2ECC8F]/30 rounded-xl px-3 py-2 mt-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MapPin size={12} className="text-[#2ECC8F]" />
+                    <p className="text-xs font-semibold text-[#1B2E4B]">{ubicacionSeleccionada.nombre}</p>
+                  </div>
+                  <button onClick={() => setUbicacionSeleccionada(null)} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Cambiar</button>
+                </div>
+              )}
+              <div className="flex gap-3 mt-2 w-full">
+                <button onClick={() => fichar("entrada")}
+                  className="flex-1 bg-[#2ECC8F] hover:bg-[#25a872] text-white py-4 rounded-2xl font-bold transition-colors text-sm">
+                  ✅ Entrada
+                </button>
+                <button onClick={() => fichar("salida")}
+                  className="flex-1 bg-[#1B2E4B] hover:bg-[#243d62] text-white py-4 rounded-2xl font-bold transition-colors text-sm">
+                  🚪 Salida
+                </button>
+              </div>
+            </>
           )}
 
           {ultimoFichaje && (
