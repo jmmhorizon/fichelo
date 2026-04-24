@@ -74,15 +74,24 @@ interface Empleado { id: string; nombre: string; email: string; sector?: string;
 interface Turno { inicio?: string; fin?: string; libre?: boolean; }
 type Semana = Record<string, Turno>;
 
+const SECTOR_LABELS: Record<string, string> = {
+  restaurante: "Hostelería",
+  limpieza:    "Limpieza",
+  albanileria: "Albañilería",
+  tiendas:     "Tiendas",
+  oficina:     "Oficina",
+};
+
 export default function TurnosPage() {
-  const [empleados, setEmpleados]     = useState<Empleado[]>([]);
-  const [lunes, setLunes]             = useState<Date>(getMonday(new Date()));
-  const [turnos, setTurnos]           = useState<Semana>({});
-  const [loading, setLoading]         = useState(true);
-  const [uid, setUid]                 = useState("");
-  const [editando, setEditando]       = useState<string | null>(null);
-  const [inputInicio, setInputInicio] = useState("09:00");
-  const [inputFin, setInputFin]       = useState("17:00");
+  const [empleados, setEmpleados]         = useState<Empleado[]>([]);
+  const [lunes, setLunes]                 = useState<Date>(getMonday(new Date()));
+  const [turnos, setTurnos]               = useState<Semana>({});
+  const [loading, setLoading]             = useState(true);
+  const [uid, setUid]                     = useState("");
+  const [editando, setEditando]           = useState<string | null>(null);
+  const [inputInicio, setInputInicio]     = useState("09:00");
+  const [inputFin, setInputFin]           = useState("17:00");
+  const [empresaSector, setEmpresaSector] = useState("otro");
   const router = useRouter();
 
   const semanaKey = `${lunes.getFullYear()}W${String(getWeekNumber(lunes)).padStart(2, "0")}`;
@@ -91,8 +100,15 @@ export default function TurnosPage() {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) { router.push("/login"); return; }
       setUid(user.uid);
-      const snap = await getDocs(query(collection(db, "empleados"), where("empresaId", "==", user.uid)));
+      const [snap, empDoc] = await Promise.all([
+        getDocs(query(collection(db, "empleados"), where("empresaId", "==", user.uid))),
+        getDoc(doc(db, "empresas", user.uid)),
+      ]);
       setEmpleados(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Empleado)));
+      if (empDoc.exists()) {
+        const d = empDoc.data() as { sector?: string };
+        setEmpresaSector(d.sector ?? "otro");
+      }
       setLoading(false);
     });
     return () => unsub();
@@ -127,9 +143,9 @@ export default function TurnosPage() {
     return `${fmt(lunes)} – ${fmt(fin)} ${lunes.getFullYear()}`;
   };
 
-  // Devuelve las plantillas del sector del empleado (o genéricas si no tiene)
-  const plantillasDeEmp = (emp: Empleado) =>
-    PLANTILLAS[emp.sector ?? "otro"] ?? PLANTILLAS.otro;
+  // Plantillas basadas en el sector de la empresa (configurado en Ajustes)
+  const plantillasDeEmp = (_emp: Empleado) =>
+    PLANTILLAS[empresaSector] ?? PLANTILLAS.otro;
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -150,7 +166,14 @@ export default function TurnosPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-[#1B2E4B]">Turnos semanales</h1>
-            <p className="text-gray-500 text-sm mt-1">Haz clic en una celda para asignar el turno</p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-gray-500 text-sm">Haz clic en una celda para asignar el turno</p>
+              {empresaSector !== "otro" && (
+                <span className="text-xs bg-[#2ECC8F]/10 text-[#2ECC8F] px-2 py-0.5 rounded-full font-semibold">
+                  {SECTOR_LABELS[empresaSector] ?? empresaSector}
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => navSemana(-1)}

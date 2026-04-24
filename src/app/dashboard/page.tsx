@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState, Suspense } from "react";
-import { auth, db } from "@/lib/firebase";
+import { auth, db, storage } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, query, where, Timestamp, doc, getDoc, getDocs, limit, updateDoc } from "firebase/firestore";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -26,6 +27,7 @@ interface Empresa {
   direccion?: string;
   logoUrl?: string;
   nombrePersonalizado?: string;
+  sector?: string;
 }
 
 interface EmpleadoData {
@@ -165,6 +167,15 @@ const DEMO_EMPRESAS: Record<string, Empresa> = {
 };
 
 
+const SECTORES_EMPRESA = [
+  { value: "restaurante", label: "Hostelería / Restaurante", emoji: "🍽️" },
+  { value: "limpieza",    label: "Limpieza",                 emoji: "🧹" },
+  { value: "albanileria", label: "Albañilería / Reformas",   emoji: "🏗️" },
+  { value: "tiendas",     label: "Tiendas / Supermercados",  emoji: "🛒" },
+  { value: "oficina",     label: "Oficina / Administración", emoji: "💼" },
+  { value: "otro",        label: "Otro sector",              emoji: "📋" },
+];
+
 function DashboardContent() {
   const [fichajes, setFichajes] = useState<Fichaje[]>([]);
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
@@ -183,8 +194,12 @@ function DashboardContent() {
   const [ausencias, setAusencias] = useState<{ empleado: string; tipo: string; desde: string; hasta: string }[]>([]);
   const [empleadosData, setEmpleadosData] = useState<EmpleadoData[]>([]);
   const [logoUrl, setLogoUrl] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState("");
   const [nombreEmpresaEdit, setNombreEmpresaEdit] = useState("");
   const [guardandoConfig, setGuardandoConfig] = useState(false);
+  const [sectorEmpresa, setSectorEmpresa] = useState("otro");
+  const [guardandoSector, setGuardandoSector] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const demoParam = searchParams.get("demo");
@@ -213,6 +228,7 @@ function DashboardContent() {
           setEmpresa(emp);
           setLogoUrl(emp.logoUrl ?? "");
           setNombreEmpresaEdit(emp.nombrePersonalizado ?? emp.nombre ?? "");
+          setSectorEmpresa(emp.sector ?? "otro");
         }
         setEmpleadosData(empleadosSnap.docs.map((d) => ({ id: d.id, ...d.data() } as EmpleadoData)));
 
@@ -725,6 +741,48 @@ function DashboardContent() {
             )}
           </div>
 
+          {/* Tipo de negocio — disponible para todos los planes */}
+          <div className="bg-white rounded-2xl shadow-sm p-8 max-w-xl mt-6">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-lg">🏪</span>
+              <h2 className="font-bold text-[#1B2E4B]">Tipo de negocio</h2>
+            </div>
+            <p className="text-gray-500 text-sm mb-5">
+              Selecciona el sector de tu empresa. El calendario de turnos mostrará plantillas horarias adaptadas a tu negocio.
+            </p>
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              {SECTORES_EMPRESA.map((s) => (
+                <button
+                  key={s.value}
+                  onClick={() => setSectorEmpresa(s.value)}
+                  className={`flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                    sectorEmpresa === s.value
+                      ? "border-[#2ECC8F] bg-[#2ECC8F]/5"
+                      : "border-gray-100 hover:border-gray-200"
+                  }`}
+                >
+                  <span className="text-2xl">{s.emoji}</span>
+                  <span className="text-sm font-semibold text-[#1B2E4B] leading-tight">{s.label}</span>
+                </button>
+              ))}
+            </div>
+            <button
+              disabled={guardandoSector}
+              onClick={async () => {
+                const uid = auth.currentUser?.uid;
+                if (!uid) return;
+                setGuardandoSector(true);
+                await updateDoc(doc(db, "empresas", uid), { sector: sectorEmpresa });
+                setEmpresa((prev) => prev ? { ...prev, sector: sectorEmpresa } : prev);
+                setGuardandoSector(false);
+                alert("Sector guardado. Ahora el calendario de turnos usará las plantillas de " + (SECTORES_EMPRESA.find(s => s.value === sectorEmpresa)?.label ?? sectorEmpresa) + ".");
+              }}
+              className="w-full bg-[#1B2E4B] hover:bg-[#243d62] text-white py-3 rounded-xl font-bold text-sm transition-colors disabled:opacity-60"
+            >
+              {guardandoSector ? "Guardando..." : "Guardar tipo de negocio"}
+            </button>
+          </div>
+
           {/* Personalización empresarial */}
           {plan === "empresarial" && !esDemo && (
             <div className="bg-white rounded-2xl shadow-sm p-8 max-w-xl mt-6">
@@ -748,21 +806,51 @@ function DashboardContent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">URL del logo (imagen)</label>
-                  <input
-                    type="url"
-                    value={logoUrl}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                    placeholder="https://tuempresa.com/logo.png"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#2ECC8F]"
-                  />
-                  {logoUrl && (
-                    <div className="mt-2 p-3 bg-gray-50 rounded-xl flex items-center gap-3">
+                  <label className="block text-xs font-medium text-gray-600 mb-2">Logo de la empresa</label>
+                  {(logoPreview || logoUrl) && (
+                    <div className="mb-3 p-3 bg-gray-50 rounded-xl flex items-center gap-3">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={logoUrl} alt="Vista previa" className="h-10 w-auto object-contain" onError={(e) => (e.currentTarget.style.display = "none")} />
-                      <span className="text-xs text-gray-500">Vista previa del logo</span>
+                      <img
+                        src={logoPreview || logoUrl}
+                        alt="Logo"
+                        className="h-12 w-auto object-contain rounded"
+                        onError={(e) => (e.currentTarget.style.display = "none")}
+                      />
+                      <span className="text-xs text-gray-400">Vista previa</span>
+                      {logoUrl && !logoPreview && (
+                        <button
+                          type="button"
+                          onClick={() => setLogoUrl("")}
+                          className="ml-auto text-xs text-red-400 hover:text-red-500"
+                        >
+                          Eliminar
+                        </button>
+                      )}
                     </div>
                   )}
+                  <label className="flex items-center gap-3 w-full border-2 border-dashed border-gray-200 hover:border-[#2ECC8F] rounded-xl px-4 py-5 cursor-pointer transition-colors group">
+                    <div className="w-10 h-10 bg-gray-100 group-hover:bg-[#2ECC8F]/10 rounded-xl flex items-center justify-center transition-colors shrink-0">
+                      <span className="text-xl">📁</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[#1B2E4B]">
+                        {logoFile ? logoFile.name : "Seleccionar imagen"}
+                      </p>
+                      <p className="text-xs text-gray-400">PNG, JPG, SVG o WebP · Máximo 2 MB</p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 2 * 1024 * 1024) { alert("La imagen no puede superar 2 MB"); return; }
+                        setLogoFile(file);
+                        setLogoPreview(URL.createObjectURL(file));
+                      }}
+                    />
+                  </label>
                 </div>
                 <button
                   disabled={guardandoConfig}
@@ -770,17 +858,31 @@ function DashboardContent() {
                     const uid = auth.currentUser?.uid;
                     if (!uid) return;
                     setGuardandoConfig(true);
-                    await updateDoc(doc(db, "empresas", uid), {
-                      nombrePersonalizado: nombreEmpresaEdit,
-                      logoUrl,
-                    });
-                    setEmpresa((prev) => prev ? { ...prev, nombrePersonalizado: nombreEmpresaEdit, logoUrl } : prev);
-                    setGuardandoConfig(false);
-                    alert("¡Cambios guardados!");
+                    try {
+                      let urlFinal = logoUrl;
+                      if (logoFile) {
+                        const r = storageRef(storage, `logos/${uid}`);
+                        await uploadBytes(r, logoFile);
+                        urlFinal = await getDownloadURL(r);
+                        setLogoUrl(urlFinal);
+                        setLogoFile(null);
+                        setLogoPreview("");
+                      }
+                      await updateDoc(doc(db, "empresas", uid), {
+                        nombrePersonalizado: nombreEmpresaEdit,
+                        logoUrl: urlFinal,
+                      });
+                      setEmpresa((prev) => prev ? { ...prev, nombrePersonalizado: nombreEmpresaEdit, logoUrl: urlFinal } : prev);
+                      alert("¡Cambios guardados!");
+                    } catch {
+                      alert("Error al subir el logo. Comprueba las reglas de Firebase Storage.");
+                    } finally {
+                      setGuardandoConfig(false);
+                    }
                   }}
                   className="bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-bold text-sm transition-colors disabled:opacity-60"
                 >
-                  {guardandoConfig ? "Guardando..." : "Guardar personalización"}
+                  {guardandoConfig ? "Subiendo y guardando..." : "Guardar personalización"}
                 </button>
               </div>
             </div>
