@@ -92,6 +92,7 @@ export default function TurnosPage() {
   const [inputInicio, setInputInicio]     = useState("09:00");
   const [inputFin, setInputFin]           = useState("17:00");
   const [empresaSector, setEmpresaSector] = useState("otro");
+  const [filtro, setFiltro]               = useState<"asignado" | "libre" | "vacio" | null>(null);
   const router = useRouter();
 
   const semanaKey = `${lunes.getFullYear()}W${String(getWeekNumber(lunes)).padStart(2, "0")}`;
@@ -100,16 +101,19 @@ export default function TurnosPage() {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) { router.push("/login"); return; }
       setUid(user.uid);
-      const [snap, empDoc] = await Promise.all([
-        getDocs(query(collection(db, "empleados"), where("empresaId", "==", user.uid))),
-        getDoc(doc(db, "empresas", user.uid)),
-      ]);
-      setEmpleados(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Empleado)));
-      if (empDoc.exists()) {
-        const d = empDoc.data() as { sector?: string };
-        setEmpresaSector(d.sector ?? "otro");
+      try {
+        const [snap, empDoc] = await Promise.all([
+          getDocs(query(collection(db, "empleados"), where("empresaId", "==", user.uid))),
+          getDoc(doc(db, "empresas", user.uid)),
+        ]);
+        setEmpleados(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Empleado)));
+        if (empDoc.exists()) {
+          const d = empDoc.data() as { sector?: string };
+          setEmpresaSector(d.sector ?? "otro");
+        }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
     return () => unsub();
   }, [router]);
@@ -146,6 +150,16 @@ export default function TurnosPage() {
   // Plantillas basadas en el sector de la empresa (configurado en Ajustes)
   const plantillasDeEmp = (_emp: Empleado) =>
     PLANTILLAS[empresaSector] ?? PLANTILLAS.otro;
+
+  const empleadosFiltrados = filtro === null ? empleados : empleados.filter((emp) => {
+    const tieneAsignado = [0,1,2,3,4,5,6].some(d => { const t = turnos[`${emp.id}_${d}`]; return !!(t && !t.libre && t.inicio); });
+    const tieneLibre    = [0,1,2,3,4,5,6].some(d => !!turnos[`${emp.id}_${d}`]?.libre);
+    const sinNada       = ![0,1,2,3,4,5,6].some(d => !!turnos[`${emp.id}_${d}`]);
+    if (filtro === "asignado") return tieneAsignado;
+    if (filtro === "libre")    return tieneLibre;
+    if (filtro === "vacio")    return sinNada;
+    return true;
+  });
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -222,7 +236,7 @@ export default function TurnosPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {empleados.map((emp, empIdx) => {
+                  {empleadosFiltrados.map((emp, empIdx) => {
                     const plantillas = plantillasDeEmp(emp);
                     return (
                       <tr key={emp.id} className={`border-b border-gray-50 last:border-0 ${empIdx % 2 === 0 ? "" : "bg-gray-50/50"}`}>
@@ -342,20 +356,32 @@ export default function TurnosPage() {
               </table>
             </div>
 
-            {/* Leyenda */}
-            <div className="flex items-center gap-4 px-5 py-3 border-t border-gray-100 bg-gray-50/50">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-[#2ECC8F]/15" />
-                <span className="text-xs text-gray-500">Turno asignado</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-gray-100" />
-                <span className="text-xs text-gray-500">Día libre</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded border-2 border-dashed border-gray-200" />
-                <span className="text-xs text-gray-500">Sin asignar</span>
-              </div>
+            {/* Filtros */}
+            <div className="flex flex-wrap items-center gap-2 px-5 py-3 border-t border-gray-100 bg-gray-50/50">
+              <span className="text-xs text-gray-400 font-medium mr-1">Filtrar:</span>
+              {([
+                { key: "asignado", label: "Turno asignado", dot: "bg-[#2ECC8F]/50" },
+                { key: "libre",    label: "Día libre",       dot: "bg-gray-300" },
+                { key: "vacio",    label: "Sin asignar",     dot: "border-2 border-dashed border-gray-300" },
+              ] as const).map(({ key, label, dot }) => (
+                <button
+                  key={key}
+                  onClick={() => setFiltro(f => f === key ? null : key)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                    filtro === key
+                      ? "bg-[#1B2E4B] text-white border-[#1B2E4B]"
+                      : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <span className={`w-3 h-3 rounded-sm shrink-0 ${dot}`} />
+                  {label}
+                </button>
+              ))}
+              {filtro && (
+                <button onClick={() => setFiltro(null)} className="text-xs text-gray-400 hover:text-gray-600 underline ml-1">
+                  Ver todos
+                </button>
+              )}
             </div>
           </div>
         )}

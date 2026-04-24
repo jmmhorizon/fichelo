@@ -741,8 +741,8 @@ function DashboardContent() {
             )}
           </div>
 
-          {/* Tipo de negocio — disponible para todos los planes */}
-          <div className="bg-white rounded-2xl shadow-sm p-8 max-w-xl mt-6">
+          {/* Tipo de negocio — Pro y Empresarial */}
+          {esPro && <div className="bg-white rounded-2xl shadow-sm p-8 max-w-xl mt-6">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-lg">🏪</span>
               <h2 className="font-bold text-[#1B2E4B]">Tipo de negocio</h2>
@@ -781,7 +781,7 @@ function DashboardContent() {
             >
               {guardandoSector ? "Guardando..." : "Guardar tipo de negocio"}
             </button>
-          </div>
+          </div>}
 
           {/* Personalización empresarial */}
           {plan === "empresarial" && !esDemo && (
