@@ -32,21 +32,33 @@ export async function GET(req: NextRequest) {
   try { token = await getCronToken(); }
   catch { return NextResponse.json({ error: "auth" }, { status: 500 }); }
 
-  const results: { id: string; nombre: string; email: string; rol?: string }[] = [];
-  let pageToken = "";
-  do {
-    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/empleados?pageSize=300${pageToken ? "&pageToken=" + pageToken : ""}`;
-    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    const d = await r.json();
-    for (const doc of (d.documents ?? [])) {
-      if (!doc.fields) continue;
-      const data = parseDoc(doc.fields as Record<string, Record<string, unknown>>);
-      if (data.empresaId !== empresaId) continue;
-      const id = (doc.name as string).split("/").pop()!;
-      results.push({ id, nombre: data.nombre as string, email: data.email as string, rol: data.rol as string | undefined });
-    }
-    pageToken = d.nextPageToken ?? "";
-  } while (pageToken);
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents:runQuery`;
+  const r = await fetch(url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      structuredQuery: {
+        from: [{ collectionId: "empleados" }],
+        where: {
+          fieldFilter: {
+            field: { fieldPath: "empresaId" },
+            op: "EQUAL",
+            value: { stringValue: empresaId },
+          },
+        },
+      },
+    }),
+  });
+  const rows = await r.json() as { document?: { name: string; fields: Record<string, Record<string, unknown>> } }[];
+
+  const results = rows
+    .filter(row => row.document?.fields)
+    .map(row => {
+      const doc = row.document!;
+      const data = parseDoc(doc.fields);
+      const id = doc.name.split("/").pop()!;
+      return { id, nombre: data.nombre as string, email: data.email as string, rol: data.rol as string | undefined };
+    });
 
   return NextResponse.json(results);
 }
