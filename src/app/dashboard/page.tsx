@@ -396,14 +396,6 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* Banner trial activo */}
-      {!esDemo && trialDaysLeft !== null && trialDaysLeft > 0 && (
-        <div className="bg-amber-400 text-amber-900 text-center text-sm py-2 font-semibold">
-          Período de prueba — te quedan <strong>{trialDaysLeft} día{trialDaysLeft !== 1 ? "s" : ""}</strong> gratis ·{" "}
-          <Link href={`/checkout?plan=${plan}`} className="underline">Activar plan ahora</Link>
-        </div>
-      )}
-
       {/* Overlay trial expirado */}
       {!esDemo && trialDaysLeft === 0 && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
@@ -466,6 +458,50 @@ function DashboardContent() {
       </nav>
 
       <div className="max-w-6xl mx-auto px-4 py-8">
+
+        {/* TARJETA TRIAL */}
+        {!esDemo && trialDaysLeft !== null && trialDaysLeft > 0 && (
+          <div className={`rounded-2xl p-6 mb-6 flex flex-col md:flex-row items-center gap-6 ${
+            trialDaysLeft <= 2 ? "bg-red-50 border-2 border-red-200" : "bg-amber-50 border-2 border-amber-200"
+          }`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center shrink-0 ${
+              trialDaysLeft <= 2 ? "bg-red-100" : "bg-amber-100"
+            }`}>
+              <span className="text-3xl font-extrabold" style={{ color: trialDaysLeft <= 2 ? "#dc2626" : "#d97706" }}>
+                {trialDaysLeft}
+              </span>
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <p className={`font-extrabold text-lg mb-1 ${trialDaysLeft <= 2 ? "text-red-700" : "text-amber-800"}`}>
+                {trialDaysLeft <= 2
+                  ? `⚠️ Solo te quedan ${trialDaysLeft} día${trialDaysLeft !== 1 ? "s" : ""} de prueba`
+                  : `Período de prueba — te quedan ${trialDaysLeft} días`}
+              </p>
+              <p className={`text-sm mb-3 ${trialDaysLeft <= 2 ? "text-red-600" : "text-amber-700"}`}>
+                {trialDaysLeft <= 2
+                  ? "Activa tu plan ahora para no perder el acceso ni tus datos."
+                  : "Estás usando Fichelo gratis. Activa tu plan antes de que expire para seguir sin interrupciones."}
+              </p>
+              {/* Barra de progreso */}
+              <div className="w-full bg-white/60 rounded-full h-2 mb-1">
+                <div
+                  className={`h-2 rounded-full transition-all ${trialDaysLeft <= 2 ? "bg-red-400" : "bg-amber-400"}`}
+                  style={{ width: `${((7 - trialDaysLeft) / 7) * 100}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-400">{7 - trialDaysLeft} de 7 días usados</p>
+            </div>
+            <Link
+              href={`/checkout?plan=${plan}`}
+              className={`shrink-0 font-bold px-6 py-3 rounded-xl text-white text-sm transition-colors ${
+                trialDaysLeft <= 2 ? "bg-red-600 hover:bg-red-700" : "bg-amber-500 hover:bg-amber-600"
+              }`}
+            >
+              Activar plan {planInfo.label}
+            </Link>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
