@@ -249,10 +249,13 @@ function DashboardContent() {
           setModoDesplazamiento(emp.modoDesplazamiento ?? false);
           setUbicaciones(emp.ubicaciones ?? []);
           if (!emp.activo) {
-            const created = emp.creadoEn ? new Date(emp.creadoEn) : null;
-            const days = created
-              ? Math.max(0, 7 - Math.floor((Date.now() - created.getTime()) / 86400000))
-              : 7;
+            let creadoEnStr = emp.creadoEn;
+            if (!creadoEnStr) {
+              creadoEnStr = new Date().toISOString();
+              await updateDoc(doc(db, "empresas", user.uid), { creadoEn: creadoEnStr });
+            }
+            const created = new Date(creadoEnStr);
+            const days = Math.max(0, 7 - Math.floor((Date.now() - created.getTime()) / 86400000));
             setTrialDaysLeft(days);
           }
         }
