@@ -14,6 +14,8 @@ interface Fichaje {
   tipo: "entrada" | "salida";
   hora: Timestamp;
   dentro: boolean;
+  tarde?: boolean;
+  minutosRetraso?: number;
 }
 
 interface Empresa {
@@ -518,7 +520,14 @@ function DashboardContent() {
                       </div>
                       <div>
                         <p className="font-medium text-[#1B2E4B] text-sm">{f.empleadoNombre}</p>
-                        <p className="text-xs text-gray-400 capitalize">{f.tipo}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs text-gray-400 capitalize">{f.tipo}</p>
+                          {f.tarde && (
+                            <span className="text-xs bg-orange-100 text-orange-600 font-bold px-1.5 py-0.5 rounded-full">
+                              TARDE {f.minutosRetraso ? `+${f.minutosRetraso}min` : ""}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">

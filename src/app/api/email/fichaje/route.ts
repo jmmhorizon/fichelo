@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 
 export async function POST(req: NextRequest) {
-  const { emailJefe, nombreEmpresa, empleadoNombre, tipo, hora, lat, lng, dentro } = await req.json();
+  const { emailJefe, nombreEmpresa, empleadoNombre, tipo, hora, lat, lng, dentro, tarde, minutosRetraso } = await req.json();
   if (!emailJefe) return NextResponse.json({ ok: false, error: "Sin email del jefe" });
 
   const resend = new Resend(process.env.RESEND_API_KEY);
@@ -11,11 +11,16 @@ export async function POST(req: NextRequest) {
   const fechaStr = new Date(hora).toLocaleDateString("es-ES", { day: "2-digit", month: "long", year: "numeric" });
   const ubicacionColor = dentro ? "#2ECC8F" : "#ef4444";
   const ubicacionTexto = dentro ? "✅ Dentro de la zona de trabajo" : "⚠️ Fuera de la zona de trabajo";
+  const tardeLabel = tarde && minutosRetraso ? `+${minutosRetraso} min tarde` : tarde ? "tarde" : "";
+
+  const subject = tarde
+    ? `⚠️ ${empleadoNombre.toUpperCase()} HA FICHADO TARDE (${tardeLabel}) — ${horaStr}`
+    : `${empleadoNombre.toUpperCase()} YA FICHÓ ${dentro ? "EN LA UBICACIÓN CORRECTA" : "FUERA DE ZONA"} A LAS ${horaStr}`;
 
   await resend.emails.send({
     from: process.env.RESEND_FROM ?? "Fichelo <onboarding@resend.dev>",
     to: emailJefe,
-    subject: `${empleadoNombre.toUpperCase()} YA FICHÓ ${dentro ? "EN LA UBICACIÓN CORRECTA" : "FUERA DE ZONA"} A LAS ${horaStr}`,
+    subject,
     html: `
       <div style="font-family: Inter, Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #f9fafb; padding: 32px 16px;">
         <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
@@ -27,9 +32,18 @@ export async function POST(req: NextRequest) {
           <div style="padding: 32px;">
             <p style="color: #6b7280; font-size: 14px; margin: 0 0 8px;">Nuevo fichaje en <strong>${nombreEmpresa}</strong></p>
             <h1 style="color: #1B2E4B; font-size: 24px; font-weight: 900; margin: 0 0 4px; text-transform: uppercase; letter-spacing: -0.5px;">${empleadoNombre}</h1>
-            <p style="color: #1B2E4B; font-size: 18px; font-weight: 700; margin: 0 0 24px;">
+            <p style="color: #1B2E4B; font-size: 18px; font-weight: 700; margin: 0 0 16px;">
               ${tipo === "entrada" ? "🟢 ENTRADA" : "🟠 SALIDA"} · ${horaStr}
             </p>
+
+            ${tarde ? `
+            <div style="background: #fff7ed; border: 2px solid #f97316; border-radius: 12px; padding: 14px 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 22px;">⏰</span>
+              <div>
+                <p style="color: #c2410c; font-size: 15px; font-weight: 900; margin: 0;">LLEGADA TARDE</p>
+                <p style="color: #ea580c; font-size: 13px; margin: 4px 0 0;">${minutosRetraso ? `${minutosRetraso} minutos de retraso` : "Más de 10 minutos tarde"}</p>
+              </div>
+            </div>` : ""}
 
             <div style="background: ${dentro ? "#f0fdf4" : "#fef2f2"}; border: 2px solid ${ubicacionColor}; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px;">
               <p style="color: ${ubicacionColor}; font-size: 16px; font-weight: 800; margin: 0;">
@@ -43,7 +57,7 @@ export async function POST(req: NextRequest) {
                 <span style="color: #1B2E4B; font-size: 13px; font-weight: 600;">${fechaStr}</span>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                <span style="color: #6b7280; font-size: 13px;">Hora</span>
+                <span style="color: #6b7280; font-size: 13px;">Hora fichaje</span>
                 <span style="color: #1B2E4B; font-size: 13px; font-weight: 600;">${horaStr}</span>
               </div>
               <div style="display: flex; justify-content: space-between;">

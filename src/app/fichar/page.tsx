@@ -10,6 +10,19 @@ import Link from "next/link";
 import { MapPin, CheckCircle, XCircle, Clock, Navigation } from "lucide-react";
 
 const RADIO_METROS = 200;
+const MINUTOS_TOLERANCIA = 10;
+
+function getWeekNumber(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
+function toMinutos(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
 
 interface Ubicacion { id: string; nombre: string; direccion: string; lat: number; lng: number; }
 interface EmpleadoInfo {
@@ -147,16 +160,40 @@ function FicharContent() {
         }
 
         const now = Timestamp.now();
+
+        // Detectar tardanza solo en entradas
+        let tarde = false;
+        let minutosRetraso = 0;
+        if (tipo === "entrada") {
+          try {
+            const hoy = now.toDate();
+            const semanaKey = `${hoy.getFullYear()}W${String(getWeekNumber(hoy)).padStart(2, "0")}`;
+            const dayIdx = (hoy.getDay() + 6) % 7; // 0=Lun … 6=Dom
+            const turnosDoc = await getDoc(doc(db, "turnos", `${empleado.empresaId}_${semanaKey}`));
+            if (turnosDoc.exists()) {
+              const turno = turnosDoc.data()[`${user.uid}_${dayIdx}`] as { inicio?: string } | undefined;
+              if (turno?.inicio) {
+                const madridHora = new Intl.DateTimeFormat("es-ES", {
+                  timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit", hour12: false,
+                }).format(hoy).replace(".", ":"); // some locales use "09.30"
+                const retraso = toMinutos(madridHora) - toMinutos(turno.inicio);
+                if (retraso > MINUTOS_TOLERANCIA) { tarde = true; minutosRetraso = retraso; }
+              }
+            }
+          } catch { /* sin turno asignado — no pasa nada */ }
+        }
+
         await addDoc(collection(db, "fichajes"), {
           empleadoId: user.uid, empleadoNombre: empleado.nombre,
           empresaId: empleado.empresaId, tipo, hora: now, lat, lng, dentro,
+          ...(tarde && { tarde, minutosRetraso }),
         });
 
         if (empleado.emailJefe) {
           fetch("/api/email/fichaje", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ emailJefe: empleado.emailJefe, nombreEmpresa: empleado.empresaNombre, empleadoNombre: empleado.nombre, tipo, hora: now.toDate().toISOString(), lat, lng, dentro }),
+            body: JSON.stringify({ emailJefe: empleado.emailJefe, nombreEmpresa: empleado.empresaNombre, empleadoNombre: empleado.nombre, tipo, hora: now.toDate().toISOString(), lat, lng, dentro, tarde, minutosRetraso }),
           }).catch(() => {});
         }
 
