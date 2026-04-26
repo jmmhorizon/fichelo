@@ -123,8 +123,98 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ALERTA LEGAL */}
+      <section className="py-12 bg-red-50 border-y-2 border-red-200">
+        <div className="max-w-4xl mx-auto px-4 flex flex-col md:flex-row items-center gap-8">
+          <div className="flex-shrink-0 w-20 h-20 bg-red-100 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+          </div>
+          <div className="flex-1 text-center md:text-left">
+            <h2 className="text-2xl md:text-3xl font-extrabold text-red-700 mb-2">
+              Multas de hasta 10.000€ por no tener registro horario digital
+            </h2>
+            <p className="text-red-800/80 text-base mb-4 leading-relaxed">
+              La nueva normativa de 2026 obliga a todas las empresas a tener un sistema digital de registro de jornada accesible en tiempo real para Inspección de Trabajo. Cúbrete desde <strong>19,90€/mes</strong>.
+            </p>
+            <Link
+              href="/registro"
+              className="inline-block bg-red-600 hover:bg-red-700 text-white font-bold px-8 py-3 rounded-full transition-colors text-sm"
+            >
+              Cumple la normativa hoy
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* PRICING */}
       <Pricing />
+
+      {/* FAQ */}
+      <section className="py-24 bg-white">
+        <div className="max-w-3xl mx-auto px-4">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-[#1B2E4B] text-center mb-12">
+            Preguntas frecuentes
+          </h2>
+          <div className="divide-y divide-gray-100" id="faq-list">
+            {[
+              {
+                q: "¿Fichelo cumple con la nueva normativa de registro horario digital de 2026?",
+                a: "Sí. Fichelo registra cada fichaje con marca de tiempo exacta, geolocalización GPS verificada y exportación de datos en tiempo real. La información está disponible para Inspección de Trabajo en cualquier momento, cumpliendo con los requisitos de la nueva normativa.",
+              },
+              {
+                q: "¿Funciona si mi empleado va a casa de un cliente o trabaja en obras?",
+                a: "Sí, es nuestro punto fuerte. Con el modo desplazamiento, cada empleado ficha desde su móvil con GPS verificado en la ubicación exacta donde está trabajando — en casa de un cliente, en una obra o en cualquier punto. Tú ves en el mapa exactamente dónde fichó.",
+              },
+              {
+                q: "¿Se puede integrar con mi gestoría o software de nóminas?",
+                a: "Puedes exportar el historial completo de fichajes en CSV con un clic (plan Pro y Empresarial) para importarlo directamente en tu gestoría, Excel o cualquier software de nóminas. La integración vía API está disponible en el plan Empresarial.",
+              },
+              {
+                q: "¿Qué pasa si el empleado no tiene móvil de empresa?",
+                a: "No es necesario. Cada empleado usa su propio smartphone personal: solo necesita abrir el enlace que le envías y fichar. No hay que instalar ninguna app. También puedes configurar un acceso por PIN o código QR fijo en la entrada.",
+              },
+              {
+                q: "¿Y si falla el GPS o no hay cobertura?",
+                a: "Si no hay GPS disponible, el fichaje se registra igualmente con la hora exacta y se marca como 'sin verificación GPS'. Nunca se pierde un fichaje. Cuando el empleado recupera cobertura, la app sincroniza automáticamente.",
+              },
+              {
+                q: "¿Cuánto tarda en configurarse?",
+                a: "Menos de 5 minutos. Creas tu cuenta, introduces la dirección de tu empresa (o activas el modo desplazamiento) e invitas a tus empleados por email. Pueden empezar a fichar de inmediato.",
+              },
+              {
+                q: "¿Qué pasa con los datos de mis empleados? ¿Cumple RGPD?",
+                a: "Sí. Todos los datos se almacenan en servidores europeos, cifrados y con acceso restringido. Solo tú como administrador tienes acceso a los datos de tu empresa. Nunca vendemos ni compartimos datos con terceros.",
+              },
+              {
+                q: "¿Puedo cancelar cuando quiera?",
+                a: "Sí, sin penalizaciones. Puedes cancelar tu suscripción en cualquier momento desde tu panel. Tus datos quedan disponibles para exportar durante 30 días tras la cancelación.",
+              },
+              {
+                q: "¿Hay permanencia?",
+                a: "No. La suscripción es mensual y sin permanencia. Pagas mes a mes y puedes darte de baja cuando quieras.",
+              },
+              {
+                q: "¿Ofrecéis soporte en español?",
+                a: "Sí, soporte 100% en español por email. El plan Empresarial incluye soporte prioritario con tiempo de respuesta garantizado en menos de 4 horas en horario laboral.",
+              },
+            ].map(({ q, a }, i) => (
+              <details key={i} className="group py-5 cursor-pointer">
+                <summary className="flex items-center justify-between gap-4 text-[#1B2E4B] font-semibold text-base list-none">
+                  {q}
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 group-open:bg-[#2ECC8F]/20 flex items-center justify-center transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-gray-500 group-open:text-[#2ECC8F] group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </span>
+                </summary>
+                <p className="mt-3 text-gray-500 text-sm leading-relaxed">{a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* CTA FINAL */}
       <section className="py-24 bg-[#1B2E4B] text-white text-center">
