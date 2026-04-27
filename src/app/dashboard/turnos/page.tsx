@@ -6,52 +6,44 @@ import { collection, query, where, getDocs, doc, setDoc, getDoc } from "firebase
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Users, Plus, Trash2 } from "lucide-react";
 
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
-// Plantillas de turno por sector
 const PLANTILLAS: Record<string, { label: string; inicio: string; fin: string }[]> = {
   restaurante: [
-    { label: "Mañana",       inicio: "09:00", fin: "16:00" },
-    { label: "Tarde",        inicio: "16:00", fin: "00:00" },
-    { label: "Noche",        inicio: "22:00", fin: "06:00" },
-    { label: "Partido am",   inicio: "12:00", fin: "16:00" },
-    { label: "Partido pm",   inicio: "20:00", fin: "00:00" },
-    { label: "Media jorn.",  inicio: "10:00", fin: "14:00" },
+    { label: "Mañana",      inicio: "09:00", fin: "16:00" },
+    { label: "Tarde",       inicio: "16:00", fin: "00:00" },
+    { label: "Partido am",  inicio: "12:00", fin: "16:00" },
+    { label: "Partido pm",  inicio: "20:00", fin: "00:00" },
+    { label: "Media",       inicio: "10:00", fin: "14:00" },
   ],
   limpieza: [
-    { label: "Mañana",       inicio: "07:00", fin: "15:00" },
-    { label: "Tarde",        inicio: "15:00", fin: "23:00" },
-    { label: "Media mañana", inicio: "07:00", fin: "11:00" },
-    { label: "Media tarde",  inicio: "15:00", fin: "19:00" },
-    { label: "Jornada",      inicio: "08:00", fin: "16:00" },
+    { label: "Mañana",      inicio: "07:00", fin: "15:00" },
+    { label: "Tarde",       inicio: "15:00", fin: "23:00" },
+    { label: "Media mañ.",  inicio: "07:00", fin: "11:00" },
+    { label: "Media tard.", inicio: "15:00", fin: "19:00" },
   ],
   albanileria: [
-    { label: "Jornada",      inicio: "08:00", fin: "17:00" },
-    { label: "Mañana",       inicio: "07:00", fin: "14:00" },
-    { label: "Tarde",        inicio: "14:00", fin: "21:00" },
-    { label: "Intensiva",    inicio: "07:00", fin: "15:00" },
+    { label: "Jornada",     inicio: "08:00", fin: "17:00" },
+    { label: "Mañana",      inicio: "07:00", fin: "14:00" },
+    { label: "Tarde",       inicio: "14:00", fin: "21:00" },
   ],
   tiendas: [
-    { label: "Mañana",       inicio: "09:00", fin: "15:00" },
-    { label: "Tarde",        inicio: "15:00", fin: "21:00" },
-    { label: "Jornada",      inicio: "09:00", fin: "21:00" },
-    { label: "Apertura",     inicio: "08:00", fin: "14:00" },
-    { label: "Cierre",       inicio: "16:00", fin: "22:00" },
-    { label: "Media",        inicio: "10:00", fin: "14:00" },
+    { label: "Mañana",      inicio: "09:00", fin: "15:00" },
+    { label: "Tarde",       inicio: "15:00", fin: "21:00" },
+    { label: "Apertura",    inicio: "08:00", fin: "14:00" },
+    { label: "Cierre",      inicio: "16:00", fin: "22:00" },
   ],
   oficina: [
-    { label: "Jornada",      inicio: "09:00", fin: "18:00" },
-    { label: "Media mañana", inicio: "09:00", fin: "14:00" },
-    { label: "Media tarde",  inicio: "14:00", fin: "18:00" },
-    { label: "Intensiva",    inicio: "08:00", fin: "15:00" },
-    { label: "Flexible",     inicio: "07:00", fin: "15:00" },
+    { label: "Jornada",     inicio: "09:00", fin: "18:00" },
+    { label: "Mañana",      inicio: "09:00", fin: "14:00" },
+    { label: "Intensiva",   inicio: "08:00", fin: "15:00" },
   ],
   otro: [
-    { label: "Mañana",       inicio: "09:00", fin: "14:00" },
-    { label: "Tarde",        inicio: "14:00", fin: "21:00" },
-    { label: "Jornada",      inicio: "09:00", fin: "18:00" },
+    { label: "Mañana",      inicio: "09:00", fin: "14:00" },
+    { label: "Tarde",       inicio: "14:00", fin: "21:00" },
+    { label: "Jornada",     inicio: "09:00", fin: "18:00" },
   ],
 };
 
@@ -70,9 +62,23 @@ function getMonday(date: Date): Date {
   return d;
 }
 
-interface Empleado { id: string; nombre: string; email: string; sector?: string; rol?: string; empresaNombre?: string; }
-interface Turno { inicio?: string; fin?: string; libre?: boolean; }
+interface Empleado { id: string; nombre: string; email: string; sector?: string; rol?: string; }
+interface SubTurno  { inicio: string; fin: string; }
+interface Turno {
+  turnos?: SubTurno[];
+  libre?:  boolean;
+  // backward compat
+  inicio?: string;
+  fin?:    string;
+}
 type Semana = Record<string, Turno>;
+
+function getSubTurnos(turno: Turno | undefined): SubTurno[] {
+  if (!turno || turno.libre) return [];
+  if (turno.turnos?.length) return turno.turnos;
+  if (turno.inicio)          return [{ inicio: turno.inicio, fin: turno.fin ?? "" }];
+  return [];
+}
 
 const SECTOR_LABELS: Record<string, string> = {
   restaurante: "Hostelería",
@@ -89,8 +95,9 @@ export default function TurnosPage() {
   const [loading, setLoading]             = useState(true);
   const [uid, setUid]                     = useState("");
   const [editando, setEditando]           = useState<string | null>(null);
-  const [inputInicio, setInputInicio]     = useState("09:00");
-  const [inputFin, setInputFin]           = useState("17:00");
+  const [editTurnos, setEditTurnos]       = useState<SubTurno[]>([]);
+  const [nuevoInicio, setNuevoInicio]     = useState("09:00");
+  const [nuevoFin, setNuevoFin]           = useState("17:00");
   const [empresaSector, setEmpresaSector] = useState("otro");
   const [empresaNombre, setEmpresaNombre] = useState("");
   const [filtro, setFiltro]               = useState<"asignado" | "libre" | "vacio" | null>(null);
@@ -127,6 +134,22 @@ export default function TurnosPage() {
     });
   }, [uid, semanaKey]);
 
+  const abrirEdicion = (clave: string, turno: Turno | undefined, plantillas: { inicio: string; fin: string }[]) => {
+    setEditando(clave);
+    const subs = getSubTurnos(turno);
+    setEditTurnos(subs.length ? subs : []);
+    setNuevoInicio(plantillas[0]?.inicio ?? "09:00");
+    setNuevoFin(plantillas[0]?.fin ?? "17:00");
+  };
+
+  const añadirSubTurno = () => {
+    if (!nuevoInicio || !nuevoFin) return;
+    setEditTurnos((prev) => [...prev, { inicio: nuevoInicio, fin: nuevoFin }]);
+  };
+
+  const eliminarSubTurno = (idx: number) =>
+    setEditTurnos((prev) => prev.filter((_, i) => i !== idx));
+
   const guardarTurno = async (clave: string, turno: Turno | null, emp?: Empleado, dayIdx?: number) => {
     const nuevos = { ...turnos };
     if (turno === null) delete nuevos[clave];
@@ -135,10 +158,12 @@ export default function TurnosPage() {
     await setDoc(doc(db, "turnos", `${uid}_${semanaKey}`), nuevos);
     setEditando(null);
 
-    // Programar recordatorio si hay hora de inicio y tenemos datos del empleado
-    if (turno?.inicio && emp && dayIdx !== undefined) {
-      try {
-        const res = await fetch("/api/programar-recordatorio", {
+    // Programar recordatorio para cada sub-turno
+    const subs = turno ? getSubTurnos(turno) : [];
+    if (emp && dayIdx !== undefined && subs.length > 0) {
+      for (const st of subs) {
+        if (!st.inicio) continue;
+        fetch("/api/programar-recordatorio", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -147,15 +172,11 @@ export default function TurnosPage() {
             empresaNombre,
             semanaKey,
             dayIdx,
-            turnoInicio: turno.inicio,
-            turnoFin: turno.fin,
+            turnoInicio: st.inicio,
+            turnoFin:    st.fin,
             lunesTimestamp: lunes.getTime(),
           }),
-        });
-        const json = await res.json();
-        console.log("[recordatorio]", json);
-      } catch (err) {
-        console.error("[recordatorio] error:", err);
+        }).then((r) => r.json()).then((j) => console.log("[recordatorio]", j)).catch(console.error);
       }
     }
   };
@@ -173,12 +194,10 @@ export default function TurnosPage() {
     return `${fmt(lunes)} – ${fmt(fin)} ${lunes.getFullYear()}`;
   };
 
-  // Plantillas basadas en el sector de la empresa (configurado en Ajustes)
-  const plantillasDeEmp = (_emp: Empleado) =>
-    PLANTILLAS[empresaSector] ?? PLANTILLAS.otro;
+  const plantillasDeEmp = () => PLANTILLAS[empresaSector] ?? PLANTILLAS.otro;
 
   const empleadosFiltrados = filtro === null ? empleados : empleados.filter((emp) => {
-    const tieneAsignado = [0,1,2,3,4,5,6].some(d => { const t = turnos[`${emp.id}_${d}`]; return !!(t && !t.libre && t.inicio); });
+    const tieneAsignado = [0,1,2,3,4,5,6].some(d => getSubTurnos(turnos[`${emp.id}_${d}`]).length > 0);
     const tieneLibre    = [0,1,2,3,4,5,6].some(d => !!turnos[`${emp.id}_${d}`]?.libre);
     const sinNada       = ![0,1,2,3,4,5,6].some(d => !!turnos[`${emp.id}_${d}`]);
     if (filtro === "asignado") return tieneAsignado;
@@ -192,6 +211,8 @@ export default function TurnosPage() {
       <div className="w-10 h-10 border-4 border-[#2ECC8F] border-t-transparent rounded-full animate-spin" />
     </div>
   );
+
+  const plantillas = plantillasDeEmp();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -207,7 +228,7 @@ export default function TurnosPage() {
           <div>
             <h1 className="text-2xl font-bold text-[#1B2E4B]">Turnos semanales</h1>
             <div className="flex items-center gap-2 mt-1">
-              <p className="text-gray-500 text-sm">Haz clic en una celda para asignar el turno</p>
+              <p className="text-gray-500 text-sm">Haz clic en una celda para asignar turnos. Puedes añadir varios por día.</p>
               {empresaSector !== "otro" && (
                 <span className="text-xs bg-[#2ECC8F]/10 text-[#2ECC8F] px-2 py-0.5 rounded-full font-semibold">
                   {SECTOR_LABELS[empresaSector] ?? empresaSector}
@@ -262,122 +283,150 @@ export default function TurnosPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {empleadosFiltrados.map((emp, empIdx) => {
-                    const plantillas = plantillasDeEmp(emp);
-                    return (
-                      <tr key={emp.id} className={`border-b border-gray-50 last:border-0 ${empIdx % 2 === 0 ? "" : "bg-gray-50/50"}`}>
-                        <td className="px-5 py-3 sticky left-0 bg-inherit z-10">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-[#1B2E4B]/10 rounded-full flex items-center justify-center font-bold text-xs text-[#1B2E4B] shrink-0">
-                              {emp.nombre.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <span className="text-sm font-medium text-[#1B2E4B] block truncate max-w-[80px]">
-                                {emp.nombre.split(" ")[0]}
-                              </span>
-                              {emp.rol && (
-                                <span className="text-[10px] text-gray-400 truncate max-w-[80px] block">{emp.rol}</span>
-                              )}
-                            </div>
+                  {empleadosFiltrados.map((emp, empIdx) => (
+                    <tr key={emp.id} className={`border-b border-gray-50 last:border-0 ${empIdx % 2 === 0 ? "" : "bg-gray-50/50"}`}>
+                      <td className="px-5 py-3 sticky left-0 bg-inherit z-10">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-[#1B2E4B]/10 rounded-full flex items-center justify-center font-bold text-xs text-[#1B2E4B] shrink-0">
+                            {emp.nombre.charAt(0).toUpperCase()}
                           </div>
-                        </td>
+                          <div>
+                            <span className="text-sm font-medium text-[#1B2E4B] block truncate max-w-[80px]">
+                              {emp.nombre.split(" ")[0]}
+                            </span>
+                            {emp.rol && (
+                              <span className="text-[10px] text-gray-400 truncate max-w-[80px] block">{emp.rol}</span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
 
-                        {[0, 1, 2, 3, 4, 5, 6].map((dayIdx) => {
-                          const clave = `${emp.id}_${dayIdx}`;
-                          const turno = turnos[clave];
-                          const isEditando = editando === clave;
+                      {[0, 1, 2, 3, 4, 5, 6].map((dayIdx) => {
+                        const clave   = `${emp.id}_${dayIdx}`;
+                        const turno   = turnos[clave];
+                        const subs    = getSubTurnos(turno);
+                        const isEditando = editando === clave;
 
-                          return (
-                            <td key={dayIdx} className="px-1 py-2 text-center align-top">
-                              {isEditando ? (
-                                <div className="flex flex-col gap-1 items-center bg-white border-2 border-[#2ECC8F] rounded-xl p-2 shadow-lg z-20 relative min-w-[120px]">
+                        return (
+                          <td key={dayIdx} className="px-1 py-2 text-center align-top">
+                            {isEditando ? (
+                              <div className="flex flex-col gap-2 items-stretch bg-white border-2 border-[#2ECC8F] rounded-xl p-3 shadow-lg z-20 relative min-w-[150px] text-left">
 
-                                  {/* Plantillas rápidas del sector */}
-                                  <div className="w-full mb-1">
-                                    <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide text-left mb-1">Accesos rápidos</p>
-                                    <div className="flex flex-wrap gap-1">
-                                      {plantillas.map((p) => (
-                                        <button
-                                          key={p.label}
-                                          onClick={() => { setInputInicio(p.inicio); setInputFin(p.fin); }}
-                                          className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors font-medium ${
-                                            inputInicio === p.inicio && inputFin === p.fin
-                                              ? "bg-[#2ECC8F] text-white border-[#2ECC8F]"
-                                              : "border-gray-200 text-gray-500 hover:border-[#2ECC8F] hover:text-[#2ECC8F]"
-                                          }`}
-                                        >
-                                          {p.label}
+                                {/* Turnos ya añadidos */}
+                                {editTurnos.length > 0 && (
+                                  <div className="flex flex-col gap-1">
+                                    <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide">Turnos del día</p>
+                                    {editTurnos.map((st, idx) => (
+                                      <div key={idx} className="flex items-center justify-between bg-[#2ECC8F]/10 rounded-lg px-2 py-1">
+                                        <span className="text-xs font-bold text-[#1B2E4B]">{st.inicio} – {st.fin}</span>
+                                        <button onClick={() => eliminarSubTurno(idx)}
+                                          className="text-red-300 hover:text-red-500 transition-colors ml-1">
+                                          <Trash2 size={11} />
                                         </button>
-                                      ))}
-                                    </div>
+                                      </div>
+                                    ))}
                                   </div>
+                                )}
 
-                                  <div className="w-full h-px bg-gray-100 mb-1" />
+                                <div className="w-full h-px bg-gray-100" />
 
-                                  {/* Inputs manuales */}
-                                  <input type="time" value={inputInicio} onChange={(e) => setInputInicio(e.target.value)}
-                                    className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-xs text-center" />
-                                  <span className="text-xs text-gray-400">hasta</span>
-                                  <input type="time" value={inputFin} onChange={(e) => setInputFin(e.target.value)}
-                                    className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-xs text-center" />
-
-                                  <div className="flex gap-1 mt-1 w-full">
-                                    <button onClick={() => guardarTurno(clave, { inicio: inputInicio, fin: inputFin }, emp, dayIdx)}
-                                      className="flex-1 text-xs bg-[#2ECC8F] hover:bg-[#25a872] text-white py-1.5 rounded-lg font-bold transition-colors">
-                                      Guardar
-                                    </button>
-                                    <button onClick={() => guardarTurno(clave, { libre: true })}
-                                      className="flex-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 py-1.5 rounded-lg font-semibold transition-colors">
-                                      Libre
-                                    </button>
-                                  </div>
-                                  <div className="flex gap-1 w-full">
-                                    {turno && (
-                                      <button onClick={() => guardarTurno(clave, null)}
-                                        className="flex-1 text-xs text-red-400 hover:text-red-500 py-1 rounded-lg transition-colors">
-                                        Borrar
+                                {/* Plantillas rápidas */}
+                                <div>
+                                  <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Accesos rápidos</p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {plantillas.map((p) => (
+                                      <button
+                                        key={p.label}
+                                        onClick={() => { setNuevoInicio(p.inicio); setNuevoFin(p.fin); }}
+                                        className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors font-medium ${
+                                          nuevoInicio === p.inicio && nuevoFin === p.fin
+                                            ? "bg-[#2ECC8F] text-white border-[#2ECC8F]"
+                                            : "border-gray-200 text-gray-500 hover:border-[#2ECC8F] hover:text-[#2ECC8F]"
+                                        }`}
+                                      >
+                                        {p.label}
                                       </button>
-                                    )}
-                                    <button onClick={() => setEditando(null)}
-                                      className="flex-1 text-xs text-gray-400 hover:text-gray-500 py-1 rounded-lg transition-colors">
-                                      Cancelar
-                                    </button>
+                                    ))}
                                   </div>
                                 </div>
-                              ) : (
-                                <button
-                                  onClick={() => {
-                                    setEditando(clave);
-                                    setInputInicio(turno?.inicio || plantillas[0]?.inicio || "09:00");
-                                    setInputFin(turno?.fin || plantillas[0]?.fin || "17:00");
-                                  }}
-                                  className={`w-full min-h-[52px] rounded-xl px-1 py-2 text-xs font-semibold transition-all hover:scale-105 ${
-                                    turno?.libre
-                                      ? "bg-gray-100 text-gray-400 hover:bg-gray-200"
-                                      : turno?.inicio
-                                      ? "bg-[#2ECC8F]/15 text-[#1a9e6d] hover:bg-[#2ECC8F]/25"
-                                      : "bg-gray-50 text-gray-300 border-2 border-dashed border-gray-200 hover:border-gray-300 hover:text-gray-400"
-                                  }`}
-                                >
-                                  {turno?.libre ? (
-                                    <span>Libre</span>
-                                  ) : turno?.inicio ? (
-                                    <span className="leading-tight">
-                                      {turno.inicio}<br />
-                                      <span className="text-gray-400 font-normal">–</span><br />
-                                      {turno.fin}
-                                    </span>
-                                  ) : (
-                                    <span className="text-lg">+</span>
+
+                                {/* Inputs nuevo turno */}
+                                <div className="flex flex-col gap-1 items-center">
+                                  <input type="time" value={nuevoInicio} onChange={(e) => setNuevoInicio(e.target.value)}
+                                    className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs text-center" />
+                                  <span className="text-xs text-gray-400">hasta</span>
+                                  <input type="time" value={nuevoFin} onChange={(e) => setNuevoFin(e.target.value)}
+                                    className="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs text-center" />
+                                  <button
+                                    onClick={añadirSubTurno}
+                                    className="w-full flex items-center justify-center gap-1 text-xs bg-[#1B2E4B] hover:bg-[#243d62] text-white py-1.5 rounded-lg font-bold transition-colors mt-1"
+                                  >
+                                    <Plus size={11} /> Añadir turno
+                                  </button>
+                                </div>
+
+                                <div className="w-full h-px bg-gray-100" />
+
+                                {/* Acciones principales */}
+                                <div className="flex gap-1">
+                                  <button
+                                    disabled={editTurnos.length === 0}
+                                    onClick={() => guardarTurno(clave, { turnos: editTurnos }, emp, dayIdx)}
+                                    className="flex-1 text-xs bg-[#2ECC8F] hover:bg-[#25a872] text-white py-1.5 rounded-lg font-bold transition-colors disabled:opacity-40"
+                                  >
+                                    Guardar
+                                  </button>
+                                  <button
+                                    onClick={() => guardarTurno(clave, { libre: true })}
+                                    className="flex-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 py-1.5 rounded-lg font-semibold transition-colors"
+                                  >
+                                    Libre
+                                  </button>
+                                </div>
+                                <div className="flex gap-1">
+                                  {turno && (
+                                    <button onClick={() => guardarTurno(clave, null)}
+                                      className="flex-1 text-xs text-red-400 hover:text-red-500 py-1 rounded-lg transition-colors">
+                                      Borrar
+                                    </button>
                                   )}
-                                </button>
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
+                                  <button onClick={() => setEditando(null)}
+                                    className="flex-1 text-xs text-gray-400 hover:text-gray-500 py-1 rounded-lg transition-colors">
+                                    Cancelar
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => abrirEdicion(clave, turno, plantillas)}
+                                className={`w-full min-h-[52px] rounded-xl px-1 py-2 text-xs font-semibold transition-all hover:scale-105 ${
+                                  turno?.libre
+                                    ? "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                                    : subs.length > 0
+                                    ? "bg-[#2ECC8F]/15 text-[#1a9e6d] hover:bg-[#2ECC8F]/25"
+                                    : "bg-gray-50 text-gray-300 border-2 border-dashed border-gray-200 hover:border-gray-300 hover:text-gray-400"
+                                }`}
+                              >
+                                {turno?.libre ? (
+                                  <span>Libre</span>
+                                ) : subs.length > 0 ? (
+                                  <span className="flex flex-col gap-0.5">
+                                    {subs.map((st, i) => (
+                                      <span key={i} className="leading-tight block">
+                                        {st.inicio}<span className="text-gray-400 font-normal">–</span>{st.fin}
+                                      </span>
+                                    ))}
+                                  </span>
+                                ) : (
+                                  <span className="text-lg">+</span>
+                                )}
+                              </button>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -387,8 +436,8 @@ export default function TurnosPage() {
               <span className="text-xs text-gray-400 font-medium mr-1">Filtrar:</span>
               {([
                 { key: "asignado", label: "Turno asignado", dot: "bg-[#2ECC8F]/50" },
-                { key: "libre",    label: "Día libre",       dot: "bg-gray-300" },
-                { key: "vacio",    label: "Sin asignar",     dot: "border-2 border-dashed border-gray-300" },
+                { key: "libre",    label: "Día libre",      dot: "bg-gray-300" },
+                { key: "vacio",    label: "Sin asignar",    dot: "border-2 border-dashed border-gray-300" },
               ] as const).map(({ key, label, dot }) => (
                 <button
                   key={key}
