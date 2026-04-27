@@ -1,0 +1,21 @@
+{
+  "name": "Fichelo.es — Control horario con GPS",
+  "short_name": "Fichelo",
+  "description": "Software de fichaje con GPS verificado para empresas. Cumple la normativa 2026.",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#1B2E4B",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
