@@ -32,14 +32,6 @@ export const metadata: Metadata = {
     siteName: "Fichelo.es",
     locale: "es_ES",
     type: "website",
-    images: [
-      {
-        url: "/opengraph-image",
-        width: 1200,
-        height: 630,
-        alt: "Fichelo.es — Control horario con GPS",
-      },
-    ],
   },
 
   twitter: {
@@ -47,7 +39,6 @@ export const metadata: Metadata = {
     title: "Fichelo.es — Control horario con GPS para empresas",
     description:
       "Fichaje GPS verificado en tiempo real. Cumple la normativa 2026. Desde 19,90€/mes · 7 días gratis sin tarjeta.",
-    images: ["/opengraph-image"],
   },
 
   icons: {
