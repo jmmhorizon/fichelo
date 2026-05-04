@@ -250,7 +250,8 @@ function DashboardContent() {
           setSectorEmpresa(emp.sector ?? "otro");
           setModoDesplazamiento(emp.modoDesplazamiento ?? false);
           setUbicaciones(emp.ubicaciones ?? []);
-          if (!emp.activo) {
+          const CUENTAS_INTERNAS = ["magopitito@hotmail.com", "mijael.8824@gmail.com"];
+          if (!emp.activo && !CUENTAS_INTERNAS.includes(user.email ?? "")) {
             let creadoEnStr = emp.creadoEn;
             if (!creadoEnStr) {
               creadoEnStr = new Date().toISOString();
